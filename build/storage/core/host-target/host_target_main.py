@@ -6,13 +6,14 @@
 
 import logging
 import argparse
+import sys
 
 from host_target_grpc_server import run_grpc_server
 
 
 def parse_arguments():
     parser = argparse.ArgumentParser(
-        description="Runs service for hot-plug/hot-detach virtio-blk devices to vms"
+        description="Runs service to run fio traffic over disks."
     )
     parser.add_argument("--ip", required=True, help="ip address the server listens to")
     parser.add_argument(
@@ -28,4 +29,4 @@ if __name__ == "__main__":
 
     args = parse_arguments()
 
-    run_grpc_server(args.ip, args.port)
+    sys.exit(run_grpc_server(args.ip, args.port))
