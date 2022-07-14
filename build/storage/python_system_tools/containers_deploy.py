@@ -70,26 +70,14 @@ class ContainersDeploy:
         """
 
         self.proxy_terminal.mkdir(path=self.shared_volume_path)
-        return_values = Setup.setup_on_both_machines(
-            # Run on storage-target-platform
-            self.storage_terminal.execute_as_root,
-            # Run on proxy-container-platform
-            self.proxy_terminal.execute_as_root,
-            kwargs1={
-                "cwd": self.storage_path,
-                "cmd": "AS_DAEMON=true scripts/run_storage_target_container.sh",
-            },
-            kwargs2={
-                "cwd": self.storage_path,
-                "cmd": f"AS_DAEMON=true SHARED_VOLUME={self.shared_volume_path} scripts/run_proxy_container.sh",
-            },
-            timeout=900,
-        )
-
-        # return_values contains a tuples of output and return code
-        return_codes = [element[1] for element in return_values]
-
-        return return_codes
+        return_codes = []
+        _, rc = self.storage_terminal.execute_as_root(cwd=self.storage_path,
+                                                      cmd="AS_DAEMON=true scripts/run_storage_target_container.sh")
+        return_codes.append(rc)
+        _, rc = self.proxy_terminal.execute_as_root(cwd=self.storage_path,
+                                                    cmd=f"AS_DAEMON=true SHARED_VOLUME={self.shared_volume_path} "
+                                                        f"scripts/run_proxy_container.sh",)
+        return_codes.append(rc)
 
     def run_vm_instance_on_proxy_container_platform(self):
         """Run VM on a proxy container"""
