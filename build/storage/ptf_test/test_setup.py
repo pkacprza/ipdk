@@ -193,26 +193,18 @@ class TestCheckSecurityPolicies(BaseTest):
         pass
 
 
-class TestCloneRepo(BaseTest):
-
-    def setUp(self):
-        path = Path(os.getcwd())
-        data_path = os.path.join(path.parent.absolute(), "python_system_tools/data.json")
-        with open(file=data_path) as f:
-            self.data = json.load(f)
-        self.setup_storage = Setup(
-            ExtendedTerminal(self.data["storage_address"], self.data["user"], self.data["password"]))
-        self.setup_proxy = Setup(ExtendedTerminal(self.data["proxy_address"], self.data["user"], self.data["password"]))
-
-    def runTest(self):
-        return_values = Setup.setup_on_both_machines(
-            self.setup_storage.clone_repo,
-            self.setup_proxy.clone_repo,
-            timeout=60
-        )
-
-        return_codes = [element[1] for element in return_values]
-        assert return_codes == [0, 0]
-
-    def tearDown(self):
-        pass
+# class TestCloneRepo(BaseTest):
+#
+#     def setUp(self):
+#         path = Path(os.getcwd())
+#         data_path = os.path.join(path.parent.absolute(), "python_system_tools/data.json")
+#         with open(file=data_path) as f:
+#             self.data = json.load(f)
+#         self.setup_proxy = Setup(ExtendedTerminal(self.data["proxy_address"], self.data["user"], self.data["password"]))
+#
+#     def runTest(self):
+#         _, rc = self.setup_proxy.clone_repo(branch="feat-add-ptf-tests")
+#         assert rc == 0
+#
+#     def tearDown(self):
+#         pass

@@ -236,12 +236,18 @@ class Setup:
         )
         return False
 
-    def clone_repo(self):
+    def clone_repo(self, branch=None):
         self.terminal.mkdir("/home/berta/IPDK_workspace")
-        return self.terminal.execute_as_root(
-            "git clone https://github.com/ipdk-io/ipdk.git",
-            cwd="/home/berta/IPDK_workspace",
-        )
+        if branch:
+            return self.terminal.execute_as_root(
+                f"git clone -b {branch} https://github.com/ipdk-io/ipdk.git",
+                cwd="/home/berta/IPDK_workspace",
+            )
+        else:
+            return self.terminal.execute_as_root(
+                "git clone https://github.com/ipdk-io/ipdk.git",
+                cwd="/home/berta/IPDK_workspace",
+            )
 
     def is_installed(self):
         cmds = ("docker --version", "wget --version", "docker-compose --version")
