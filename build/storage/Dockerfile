@@ -10,7 +10,7 @@
 # This image is used to provide environment for spdk build and get it in the
 # form of spdk packages
 ################################################################################
-FROM fedora:36 AS base
+FROM fedora:34 AS base
 
 ARG HTTP_PROXY
 ARG HTTPS_PROXY
@@ -29,7 +29,7 @@ RUN chmod +x /install && /install
 # Contains installed SPDK from build_base rpm packages.
 # Does not contain dependencies required to build SPDK
 ################################################################################
-FROM fedora:36 AS spdk
+FROM base AS spdk
 
 LABEL maintainer=spdk.io
 
@@ -40,9 +40,9 @@ ARG NO_PROXY
 # Copy SPDK's RPMs built during pre-install step.
 # This allows to reduce final image size since we won't have any dependencies
 # which are only required to perform build.
-RUN mkdir /spdk-rpm
-COPY --from=base /spdk-rpm/*.rpm /spdk-rpm/
-COPY --from=base /spdk-rpm/fio /spdk-rpm/
+# RUN mkdir /spdk-rpm
+# COPY --from=base /spdk-rpm/*.rpm /spdk-rpm/
+# COPY --from=base /spdk-rpm/fio /spdk-rpm/
 
 # hadolint ignore=DL3013
 RUN dnf install -y python python3-pip && dnf clean all && python -m pip install --no-cache-dir grpcio grpcio-tools
@@ -50,6 +50,7 @@ RUN dnf install -y python python3-pip && dnf clean all && python -m pip install 
 # Wrap up the image
 COPY core/build_base/post-install /install
 RUN chmod +x /install && /install
+ENV PYTHONPATH=/spdk_new/python/
 
 
 ################################################################################
@@ -145,6 +146,7 @@ ARG NO_PROXY
 
 # hadolint ignore=DL3013
 RUN dnf install -y python fio python3-pip && dnf clean all && python -m pip install --no-cache-dir grpcio-reflection pyfakefs
+RUN python -m pip install coverage pytype
 
 COPY tests/ut/host-target /host-target/tests
 COPY --from=host-target fio_runner.py /host-target/src/
@@ -155,6 +157,7 @@ COPY --from=host-target device_exerciser_if.py /host-target/src/
 COPY --from=host-target device_exerciser_customization.py /host-target/src/
 COPY --from=host-target host_target_main.py /host-target/src/
 COPY --from=host-target host_target_grpc_server.py /host-target/src/
+COPY --from=host-target volume.py /host-target/src/
 COPY --from=host-target host_target_*pb2.py /host-target/generated/
 COPY --from=host-target host_target_*pb2_grpc.py /host-target/generated/
 

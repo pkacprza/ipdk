@@ -6,9 +6,15 @@
 # NOTICE: THIS FILE HAS BEEN MODIFIED BY INTEL CORPORATION UNDER COMPLIANCE
 # WITH THE APACHE 2.0 LICENSE FROM THE ORIGINAL WORK
 #
-set -e
+set -xe
 
-dnf install -y /spdk-rpm/*.rpm
+
+# dnf install -y --skip-broken /spdk-rpm/*.rpm
+mkdir -p /usr/libexec/spdk/scripts
+ln -s /spdk_new/scripts/rpc.py /usr/libexec/spdk/scripts
+ln -s /spdk_new/scripts/ /usr/libexec/spdk/scripts
+ln -s /spdk_new/scripts/sma.py /usr/libexec/spdk/scripts
+ln -s /spdk_new/scripts/sma-client.py /usr/libexec/spdk/scripts
 
 # Be nice for docker exec and link SPDK scripts|binaries under common PATH
 # location like /usr/bin.
@@ -22,8 +28,8 @@ ln -s /usr/libexec/spdk/scripts/ /usr
 ln -s /usr/libexec/spdk/scripts/sma.py /usr/bin
 ln -s /usr/libexec/spdk/scripts/sma-client.py /usr/bin
 
-mkdir -p /usr/src/fio
-mv /spdk-rpm/fio /usr/src/fio
+#mkdir -p /usr/src/fio
+# mv /spdk-rpm/fio /usr/src/fio
 
 dnf clean all
-rm -f /tmp/*.rpm
+#rm -f /tmp/*.rpm

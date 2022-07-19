@@ -46,7 +46,7 @@ do
 done
 
 wait_for_virtio_blk_sec=5
-wait_for_virtio_blk_in_os "${virtio_blk_devices[-1]}" "$wait_for_virtio_blk_sec"
+wait_for_volume_in_os "${virtio_blk_devices[-1]}" "${ramdrives[-1]}" "$wait_for_virtio_blk_sec"
 
 check_number_of_virtio_blk_devices "${vm_serial}" \
     "$NUMBER_OF_DEVICES_TO_ATTACH_IN_SCALE_OUT"

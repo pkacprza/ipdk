@@ -30,7 +30,16 @@ RUN /scripts/vm/prepare_vm.sh
 
 FROM base AS traffic-generator
 
-RUN dnf install -y qemu-kvm && dnf clean all
+# RUN dnf install -y qemu-kvm && dnf clean all
+RUN dnf install -y git glib2-devel libfdt-devel pixman-devel zlib-devel bzip2 \
+    ninja-build python3 make gcc diffutils
+RUN git clone https://github.com/oracle/qemu qemu-orcl
+RUN cd qemu-orcl && git checkout 46bb039c31e92ae84cf7fe1f64119c1a78e0d101 && \
+    git submodule update --init --recursive
+RUN cd qemu-orcl && ./configure --enable-multiprocess && make -j && make install
+RUN rm -rf ./qemu-orcl
+
+RUN dnf clean all
 COPY tests/it/traffic-generator/init /init
 COPY --from=traffic-generator-base $DRIVE_TO_BOOT $DRIVE_TO_BOOT
 COPY /scripts /scripts

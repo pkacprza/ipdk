@@ -9,15 +9,22 @@ export DEFAULT_SMA_PORT=8080
 export DEFAULT_NVME_PORT=4420
 export MAX_NUMBER_OF_NAMESPACES_ON_COTROLLER=1024
 
-function get_number_of_virtio_blk() {
-	cmd="lsblk --output \"NAME\""
-	out=$( send_command_over_unix_socket "${1}" "${cmd}" 1 )
-	number_of_virio_blk_devices=$(echo "${out}" | grep -c "vd")
-	echo "${number_of_virio_blk_devices}"
+function _get_number_of_blk_devices() {
+	local vm_serial="$1"
+	local device_prefix="$2"
+	local cmd="lsblk --output \"NAME\""
+	local out=$( send_command_over_unix_socket "${vm_serial}" "${cmd}" 1 )
+	local number_of_nvme_devices=$(echo "${out}" | grep -c "$device_prefix")
+	echo "${number_of_nvme_devices}"
+}
+
+function _get_number_of_virtio_blk_devices() {
+	_get_number_of_blk_devices "$@" "vd"
 }
 
 function is_virtio_blk_attached() {
-	number_of_virio_blk_devices=$(get_number_of_virtio_blk "${1}")
+	local vm_serial="${1}"
+	local number_of_virio_blk_devices=$(_get_number_of_virtio_blk_devices "${vm_serial}")
 
 	if [[ "${number_of_virio_blk_devices}" == 0 ]]; then
 		echo "virtio-blk is not found"
@@ -37,9 +44,9 @@ function is_virtio_blk_not_attached() {
 }
 
 function check_number_of_virtio_blk_devices() {
-	vm_serial="${1}"
-	expected_number_of_devices="${2}"
-	number_of_devices=$(get_number_of_virtio_blk "${vm_serial}")
+	local vm_serial="${1}"
+	local expected_number_of_devices="${2}"
+	local number_of_devices=$(_get_number_of_virtio_blk_devices "${vm_serial}")
 	if [[ "${number_of_devices}" != "${expected_number_of_devices}" ]]; then
 		echo "Required number of devices '${expected_number_of_devices}' does"
 		echo "not equal to actual number of devices '${number_of_devices}'"
@@ -91,13 +98,15 @@ function uuid2base64() {
 	EOF
 }
 
-function wait_for_virtio_blk_in_os() {
-	local virtio_blk_handle="$1"
-	local wait_for_virtio_blk_sec="$2"
+function wait_for_volume_in_os() {
+	local device_handle="$1"
+	local volume_uuid="$2"
+	local wait_for_sec="$3"
 
-	echo "$virtio_blk_handle" > /dev/null
+	echo "$device_handle" > /dev/null
+	echo "$volume_uuid" > /dev/null
 	# placeholder function for now
-	sleep "$wait_for_virtio_blk_sec"
+	sleep "$wait_for_sec"
 	return 0
 }
 
@@ -140,12 +149,13 @@ function _create_virtio_blk() {
 }
 
 function create_virtio_blk() {
-	local disk_handle=""
-	disk_handle=$(create_virtio_blk_without_disk_check "$@")
+	local device_handle=""
+	local volume_id="${2}"
+	device_handle=$(create_virtio_blk_without_disk_check "$@")
 	local wait_for_virtio_blk_sec=2
-	wait_for_virtio_blk_in_os "$disk_handle" "$wait_for_virtio_blk_sec"
+	wait_for_volume_in_os "$device_handle" "$volume_id" "$wait_for_virtio_blk_sec"
 
-	echo "$disk_handle"
+	echo "$device_handle"
 }
 
 function create_virtio_blk_without_disk_check() {
@@ -164,7 +174,7 @@ function create_virtio_blk_without_disk_check() {
 	echo "$device_handle"
 }
 
-function delete_virtio_blk() {
+function _delete_sma_device() {
 	ipu_storage_container_ip="${1}"
 	device_handle="${2}"
 	sma_port="${3:-"$DEFAULT_SMA_PORT"}"
@@ -177,6 +187,11 @@ function delete_virtio_blk() {
 		}
 	}
 	EOF
+	return $?
+}
+
+function delete_virtio_blk() {
+	_delete_sma_device "$@"
 	return $?
 }
 
@@ -201,4 +216,103 @@ function wait_until_port_on_ip_addr_open() {
 		wait_counter=$(( wait_counter + 1 ))
 	done
 	return 1
+}
+
+function create_nvme_device() {
+	local ipu_storage_container_ip="$1"
+	local physical_id="$2"
+	local virtual_id="$3"
+	local sma_port="${4:-"$DEFAULT_SMA_PORT"}"
+
+	sma-client.py --address="$ipu_storage_container_ip" --port="$sma_port" <<- EOF
+		{
+			"method": "CreateDevice",
+			"params": {
+				"nvme": {
+					"physical_id": "$physical_id",
+					"virtual_id": "$virtual_id"
+				}
+			}
+		}
+	EOF
+	result=$?
+	if [[ result == 0 ]]; then
+		sleep 2
+	fi
+	return "$result"
+}
+
+
+function attach_volume() {
+	local ipu_storage_container_ip="$1"
+	local device_handle="$2"
+	local volume_id="$3"
+	local nqn="$4"
+	local traddr="$5"
+	local trsvcid="${6:-"$DEFAULT_NVME_PORT"}"
+	local sma_port="${7:-"$DEFAULT_SMA_PORT"}"
+	sma-client.py --address="$ipu_storage_container_ip" --port="$sma_port" <<- EOF
+		{
+			"method": "AttachVolume",
+			"params": {
+				"device_handle": "$device_handle",
+				"volume": {
+					"volume_id": "$(uuid2base64 $volume_id)",
+					"nvmf": {
+						"hostnqn": "$nqn",
+						"discovery": {
+							"discovery_endpoints": [
+									{
+										"trtype": "tcp",
+										"traddr": "$traddr",
+										"trsvcid": "$trsvcid"
+									}
+								]
+							}
+					}
+				}
+			}
+		}
+	EOF
+	result=$?
+	if [[ $result == 0 ]]; then
+		wait_for_volume_in_os "$device_handle" "$volume_id" 5
+	fi
+	return "$result"
+}
+
+function detach_volume() {
+	local ipu_storage_container_ip="$1"
+	local device_handle="$2"
+	local volume_id="$3"
+	local sma_port="${7:-"$DEFAULT_SMA_PORT"}"
+	sma-client.py --address="$ipu_storage_container_ip" --port="$sma_port"  <<- EOF
+		{
+			"method": "DetachVolume",
+			"params": {
+				"device_handle": "$device_handle",
+				"volume_id": "$(uuid2base64 $volume_id)"
+			}
+		}
+	EOF
+	return $?
+}
+
+function check_number_of_nvme_devices() {
+	local vm_serial="${1}"
+	local expected_number_of_devices="${2}"
+	local number_of_devices=$(_get_number_of_blk_devices "${vm_serial}" "nvme")
+	if [[ "${number_of_devices}" != "${expected_number_of_devices}" ]]; then
+		echo "Required number of devices '${expected_number_of_devices}' does"
+		echo "not equal to actual number of devices '${number_of_devices}'"
+		return 1
+	else
+		echo "Number of attached nvme devices is '${number_of_devices}'"
+		return 0
+	fi
+}
+
+function delete_nvme_device() {
+	_delete_sma_device "$@"
+	return $?
 }

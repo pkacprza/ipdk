@@ -8,12 +8,11 @@
 #
 set -e
 
-spdk_repo=/spdk
-
+spdk_repo=/spdk_new
 cleanup() {
 
 	rm -f "$HOME/rpmbuild/rpm/x86_64/"*.rpm
-	rm -rf "$spdk_repo"
+	# rm -rf "$spdk_repo"
 }
 
 trap 'cleanup' EXIT
@@ -22,6 +21,15 @@ trap 'cleanup' EXIT
 dnf install -y rpm-build
 
 export CONFIG_SMA=y
+export CONFIG_VFIO_USER=y
+
+# TODO: use rpm package. Currently it fails to be built
+git clone https://github.com/spdk/spdk.git "$spdk_repo"
+cd "$spdk_repo"
+git fetch https://review.spdk.io/gerrit/spdk/spdk refs/changes/04/13004/12 && git checkout FETCH_HEAD
+git submodule update --init --recursive
+cd -
+
 
 # Spice it a bit with supported sources
 "$spdk_repo/scripts/pkgdep.sh" -d
@@ -32,13 +40,17 @@ export CONFIG_SMA=y
 # needed since we execute inside a different mount namespace so we won't be
 # able to find any absolute paths that were used prior creating the .tar.
 "$spdk_repo/configure"
+make -C "$spdk_repo" -j
+make -C "$spdk_repo" install
+
 
 # Deploy SPDK inside the container
-DEPS="no" "$spdk_repo/rpmbuild/rpm.sh" \
-	--with-shared \
-	--with-virtio \
-	--with-fio
+#DEPS="no" "$spdk_repo/rpmbuild/rpm.sh" \
+# 	--with-shared \
+# 	--with-virtio \
+# 	--with-vfio-user \
+# 	 --with-fio \
 
-mv "$HOME/rpmbuild/rpm/x86_64/"*.rpm "/spdk-rpm/"
-mv "/usr/src/fio/fio" "/spdk-rpm/"
+# mv "$HOME/rpmbuild/rpm/x86_64/"*.rpm "/spdk-rpm/"
+# mv "/usr/src/fio/fio" "/spdk-rpm/"
 dnf clean all
