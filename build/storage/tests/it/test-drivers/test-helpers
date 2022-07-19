@@ -108,3 +108,17 @@ export shared_volume=/ipdk-shared
 export vm_serial=${shared_volume}/vm_socket
 export port_to_expose="$DEFAULT_NVME_PORT"
 export virtio_blk_virtual_id=0
+
+env
+
+unset NO_PROXY; \
+unset FTP_PROXY; \
+unset HTTPS_PROXY; \
+unset HTTP_PROXY; \
+unset no_proxy; \
+unset ftp_proxy; \
+unset https_proxy; \
+unset socks_proxy; \
+unset http_proxy; \
+unset SOCKS_PROXY;
+
