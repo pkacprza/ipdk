@@ -191,20 +191,3 @@ class TestCheckSecurityPolicies(BaseTest):
 
     def tearDown(self):
         pass
-
-
-# class TestCloneRepo(BaseTest):
-#
-#     def setUp(self):
-#         path = Path(os.getcwd())
-#         data_path = os.path.join(path.parent.absolute(), "python_system_tools/data.json")
-#         with open(file=data_path) as f:
-#             self.data = json.load(f)
-#         self.setup_proxy = Setup(ExtendedTerminal(self.data["proxy_address"], self.data["user"], self.data["password"]))
-#
-#     def runTest(self):
-#         _, rc = self.setup_proxy.clone_repo(branch="feat-add-ptf-tests")
-#         assert rc == 0
-#
-#     def tearDown(self):
-#         pass

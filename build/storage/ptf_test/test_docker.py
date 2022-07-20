@@ -31,6 +31,7 @@ class TestImages(BaseTest):
     def tearDown(self):
         pass
 
+
 class TestGetDockerID(BaseTest):
 
     def setUp(self):
@@ -51,6 +52,7 @@ class TestGetDockerID(BaseTest):
 
     def tearDown(self):
         pass
+
 
 class TestExecuteInDocker(BaseTest):
 

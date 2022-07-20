@@ -25,10 +25,14 @@ class TestRunDockersContainers(BaseTest):
         storage_terminal = ExtendedTerminal(
             self.data["storage_address"], self.data["user"], self.data["password"]
         )
-        self.containers_deploy = ContainersDeploy(proxy_terminal, storage_terminal)
+        cmd_sender_terminal = ExtendedTerminal(
+            self.data["proxy_address"], self.data["user"], self.data["password"]
+        )
+        self.containers_deploy = ContainersDeploy(proxy_terminal, storage_terminal, cmd_sender_terminal)
 
     def runTest(self):
         assert self.containers_deploy.run_docker_containers() == [0, 0]
+        assert self.containers_deploy.run_docker_from_image(image="test-driver") == 0
 
     def tearDown(self):
         pass
