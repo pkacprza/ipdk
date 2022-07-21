@@ -7,7 +7,6 @@ sys.path.append('../')
 
 from python_system_tools.extendedterminal import ExtendedTerminal
 from python_system_tools.containers_deploy import ContainersDeploy
-from python_system_tools.setup import Setup
 from ptf import testutils
 from ptf.base_tests import BaseTest
 

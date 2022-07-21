@@ -1,12 +1,16 @@
 import json
+import logging
 import os
+import re
 import sys
+import time
 from pathlib import Path
 
 sys.path.append('../')
 
 from python_system_tools.extendedterminal import ExtendedTerminal
 from python_system_tools.setup import Setup
+from scripts.socket_functions import send_command_over_unix_socket
 from ptf import testutils
 from ptf.base_tests import BaseTest
 
@@ -191,3 +195,35 @@ class TestCheckSecurityPolicies(BaseTest):
 
     def tearDown(self):
         pass
+
+
+class TestRunVM(BaseTest):
+
+    def setUp(self):
+        path = Path(os.getcwd())
+        data_path = os.path.join(path.parent.absolute(), "python_system_tools/data.json")
+        with open(file=data_path) as f:
+            self.data = json.load(f)
+        self.terminal = ExtendedTerminal(self.data["address"], self.data["user"], self.data["password"])
+
+    def runTest(self):
+        self.terminal.execute_as_root(cmd='SHARED_VOLUME=/home/berta/IPDK_workspace/SHARE '
+                                      '/home/berta/IPDK_workspace/ipdk/build/storage/scripts/vm/run_vm.sh &'
+                                      '> /dev/null &')
+        out, _ = self.terminal.execute(cmd="ls /home/berta/IPDK_workspace/SHARE")
+        pattern = 'vm(_original)?.qcow2'
+        result = re.search(pattern=pattern, string=out)
+        if result is None:
+            logging.error(f"Cannot find {pattern} in {out}")
+
+        result = result.group(0)
+
+        user_out = send_command_over_unix_socket(result, 'root', 10)
+        user_login_result = re.search(pattern='password', string=user_out)
+        password_result = send_command_over_unix_socket(result, 'root', 10)
+        # TODO: Add pattern for user_password_result
+        # user_password_result = re.search(pattern='', string=password_result)
+
+        assert result
+        assert user_login_result
+        # assert user_password_result
