@@ -207,7 +207,7 @@ class TestRunVM(BaseTest):
         self.terminal = ExtendedTerminal(self.data["address"], self.data["user"], self.data["password"])
 
     def runTest(self):
-        self.terminal.execute_as_root(cmd='SHARED_VOLUME=/home/berta/IPDK_workspace/SHARE '
+        self.terminal.execute_as_root(cmd='SHARED_VOLUME=/home/berta/IPDK_workspace/SHARE UNIX_SERIAL=vm_socket '
                                       '/home/berta/IPDK_workspace/ipdk/build/storage/scripts/vm/run_vm.sh &'
                                       '> /dev/null &')
         out, _ = self.terminal.execute(cmd="ls /home/berta/IPDK_workspace/SHARE")
@@ -217,13 +217,15 @@ class TestRunVM(BaseTest):
             logging.error(f"Cannot find {pattern} in {out}")
 
         result = result.group(0)
-
-        user_out = send_command_over_unix_socket(result, 'root', 10)
-        user_login_result = re.search(pattern='password', string=user_out)
-        password_result = send_command_over_unix_socket(result, 'root', 10)
-        # TODO: Add pattern for user_password_result
-        # user_password_result = re.search(pattern='', string=password_result)
-
         assert result
+
+        logging.info("")
+        time.sleep(120)
+
+        user_out = send_command_over_unix_socket('/home/berta/IPDK_workspace/SHARE/vm_socket', 'root', 2)
+        user_login_result = re.search(pattern='Password', string=user_out)
         assert user_login_result
-        # assert user_password_result
+        
+        password_result = send_command_over_unix_socket('/home/berta/IPDK_workspace/SHARE/vm_socket', 'root', 10)
+        user_password_result = re.search(pattern='root@', string=password_result)
+        assert user_password_result
