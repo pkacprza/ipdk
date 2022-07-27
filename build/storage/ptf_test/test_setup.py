@@ -8,6 +8,7 @@ from pathlib import Path
 
 sys.path.append('../')
 
+from python_system_tools.consts import SCRIPTS_PATH, SHARE_DIR_PATH
 from python_system_tools.extendedterminal import ExtendedTerminal
 from python_system_tools.setup import Setup
 from scripts.socket_functions import send_command_over_unix_socket
@@ -208,8 +209,8 @@ class TestRunVM(BaseTest):
 
     def runTest(self):
         self.terminal.execute_as_root(cmd='SHARED_VOLUME=/home/berta/IPDK_workspace/SHARE UNIX_SERIAL=vm_socket '
-                                      '/home/berta/IPDK_workspace/ipdk/build/storage/scripts/vm/run_vm.sh &'
-                                      '> /dev/null &')
+                                          '/home/berta/IPDK_workspace/ipdk/build/storage/scripts/vm/run_vm.sh &'
+                                          '> /dev/null &')
         out, _ = self.terminal.execute(cmd="ls /home/berta/IPDK_workspace/SHARE")
         pattern = 'vm(_original)?.qcow2'
         result = re.search(pattern=pattern, string=out)
@@ -219,13 +220,13 @@ class TestRunVM(BaseTest):
         result = result.group(0)
         assert result
 
-        logging.info("")
+        logging.info("Waiting for the VM to start")
         time.sleep(120)
 
-        user_out = send_command_over_unix_socket('/home/berta/IPDK_workspace/SHARE/vm_socket', 'root', 2)
-        user_login_result = re.search(pattern='Password', string=user_out)
+        user_out = send_command_over_unix_socket(f'{os.path.join(SHARE_DIR_PATH, "vm_socket")}', 'root', 2)
+        user_login_result = re.search(pattern='password', string=user_out)
         assert user_login_result
-        
-        password_result = send_command_over_unix_socket('/home/berta/IPDK_workspace/SHARE/vm_socket', 'root', 10)
+
+        password_result = send_command_over_unix_socket(f'{os.path.join(SHARE_DIR_PATH, "vm_socket")}', 'root', 10)
         user_password_result = re.search(pattern='root@', string=password_result)
         assert user_password_result

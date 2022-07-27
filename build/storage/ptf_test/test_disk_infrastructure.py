@@ -33,7 +33,7 @@ class TestCreateAndExposeSubsystemOverTCP(BaseTest):
         self.test_driver_id = self.proxy_terminal.get_docker_id(docker_image="test-driver")
 
     def runTest(self):
-        cmd = f"cd /home/ipdk/build/storage/python_system_tools && python -c \\\"from scripts.disk_infrastructure import " \
+        cmd = f"cd /workspace/ipdk/build/storage/python_system_tools && python -c \\\"from scripts.disk_infrastructure import " \
               f"create_and_expose_subsystem_over_tcp; create_and_expose_subsystem_over_tcp({self.ip_address}, " \
               f"{self.nqn}, {self.nvme_port}, {self.spdk_port})\\\""
         out, _ = self.proxy_terminal.execute_in_docker(cmd=cmd, container_id=self.test_driver_id)
@@ -65,7 +65,7 @@ class TestCreateRamdriveAndAttachAsNsToSubsystem(BaseTest):
 
     def runTest(self):
         for n_ramdrive in range(64):
-            cmd = f"cd /home/ipdk/build/storage/ && python -c \\\"from scripts.disk_infrastructure import " \
+            cmd = f"cd /workspace/ipdk/build/storage/ && python -c \\\"from scripts.disk_infrastructure import " \
                   "create_ramdrive_and_attach_as_ns_to_subsystem; print(create_ramdrive_and_attach_as_ns_to_subsystem(" \
                   f"{self.ip_address}, 'Malloc{n_ramdrive}', {(n_ramdrive+1)*16}, {self.nqn}, {self.spdk_port}))\\\""
             volume_id, _ = self.proxy_terminal.execute_in_docker(cmd=cmd, container_id=self.test_driver_id)
@@ -100,7 +100,7 @@ class TestCreateVirtioBlk(BaseTest):
     def runTest(self):
         volume_id = TestCreateRamdriveAndAttachAsNsToSubsystem.VOLUME_ID
         for n_virtio_blk in range(64):
-            cmd = f"cd /home/ipdk/build/storage/ && python -c \\\"from scripts.disk_infrastructure import " \
+            cmd = f"cd /workspace/ipdk/build/storage/ && python -c \\\"from scripts.disk_infrastructure import " \
                   f"create_virtio_blk; print(create_virtio_blk({self.ip_address}, {volume_id}, '{n_virtio_blk}', " \
                   f"{self.virtual_id}, {self.nqn}, {self.ip_address}, {self.nvme_port}, {self.sma_port}))\\\""
             out, _ = self.proxy_terminal.execute_in_docker(cmd=cmd, container_id=self.test_driver_id)

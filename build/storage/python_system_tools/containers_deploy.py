@@ -3,6 +3,8 @@ import sys
 import logging
 from typing import Tuple, List
 
+from ipdk_intelfisz.ipdk.build.storage.python_system_tools.consts import WORKSPACE_PATH
+
 sys.path.append('../')
 
 from python_system_tools.extendedterminal import ExtendedTerminal
@@ -84,8 +86,9 @@ class ContainersDeploy:
         return return_codes
 
     def run_docker_from_image(self, image):
-        out, rc = self.cmd_sender_terminal.execute_as_root(f"docker run -d -it --privileged --network host --entrypoint "
-                                                           f"/bin/bash {image}")
+        out, rc = self.cmd_sender_terminal.execute_as_root(f'docker run --mount type=bind,source="{WORKSPACE_PATH}",'
+                                                           f'target=/workspace -d -it --privileged --network host '
+                                                           f'--entrypoint /bin/bash {image}')
         out = out.strip()
         logging.info(f"Docker started with id: {out}")
         return rc
