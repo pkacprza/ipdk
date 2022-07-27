@@ -77,6 +77,74 @@ class TestCreateRamdriveAndAttachAsNsToSubsystem(BaseTest):
 
 class TestCreateVirtioBlk(BaseTest):
 
+    DEVICE_HANDLE = ""
+
+    def setUp(self):
+        path = Path(os.getcwd())
+        data_path = os.path.join(path.parent.absolute(), "python_system_tools/data.json")
+        with open(file=data_path) as f:
+            self.data = json.load(f)
+
+        self.ip_address = self.data["proxy_address"]
+        self.user_name = self.data["user"]
+        self.password = self.data['password']
+        self.nqn = "nqn.2016-06.io.spdk:cnode0"
+        self.spdk_port = 5260
+        self.virtual_id = 0
+        self.nvme_port = 4420
+        self.sma_port = 8080
+
+        self.proxy_terminal = Docker(
+            self.ip_address, self.user_name, self.password
+        )
+        self.test_driver_id = self.proxy_terminal.get_docker_id(docker_image="test-driver")
+
+    def runTest(self):
+        volume_id = TestCreateRamdriveAndAttachAsNsToSubsystem.VOLUME_ID
+        cmd = f"cd /workspace/ipdk/build/storage/ && python -c \\\"from scripts.disk_infrastructure import " \
+              f"create_virtio_blk; print(create_virtio_blk({self.ip_address}, {volume_id}, '0', " \
+              f"{self.virtual_id}, {self.nqn}, {self.ip_address}, {self.nvme_port}, {self.sma_port}))\\\""
+        out, _ = self.proxy_terminal.execute_in_docker(cmd=cmd, container_id=self.test_driver_id)
+        self.DEVICE_HANDLE = out
+
+    def tearDown(self):
+        pass
+
+
+class TestDeleteVirtioBlk(BaseTest):
+    def setUp(self):
+        path = Path(os.getcwd())
+        data_path = os.path.join(path.parent.absolute(), "python_system_tools/data.json")
+        with open(file=data_path) as f:
+            self.data = json.load(f)
+
+        self.ip_address = self.data["proxy_address"]
+        self.user_name = self.data["user"]
+        self.password = self.data['password']
+        self.nqn = "nqn.2016-06.io.spdk:cnode0"
+        self.spdk_port = 5260
+        self.virtual_id = 0
+        self.nvme_port = 4420
+        self.sma_port = 8080
+
+        self.proxy_terminal = Docker(
+            self.ip_address, self.user_name, self.password
+        )
+        self.test_driver_id = self.proxy_terminal.get_docker_id(docker_image="test-driver")
+
+    def runTest(self):
+        cmd = f"cd /workspace/ipdk/build/storage/ && python -c \\\"from scripts.disk_infrastructure import " \
+              f"delete_virtio_blk; print(delete_virtio_blk({self.ip_address}, {TestCreateVirtioBlk.DEVICE_HANDLE}, " \
+              f"{self.sma_port}))\\\""
+        out, _ = self.proxy_terminal.execute_in_docker(cmd=cmd, container_id=self.test_driver_id)
+
+
+    def tearDown(self):
+        pass
+
+
+class TestCreateVirtioBlk_64(BaseTest):
+
     def setUp(self):
         path = Path(os.getcwd())
         data_path = os.path.join(path.parent.absolute(), "python_system_tools/data.json")
