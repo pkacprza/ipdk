@@ -13,28 +13,30 @@ function get_number_of_virtio_blk() {
     python3 <<- EOF
 from scripts import disk_infrastructure
 
-print(disk_infrastructure.get_number_of_virtio_blk(socket="${1}"))
+print(disk_infrastructure.get_number_of_virtio_blk(sock="${1}"))
 EOF
 }
 
 function is_virtio_blk_attached() {
-    python3 <<- EOF
+    return $(python3 <<- EOF
 from scripts import disk_infrastructure
 
-print(disk_infrastructure.is_virtio_blk_attached(socket="${1}"))
+print(disk_infrastructure.is_virtio_blk_attached(sock="${1}"))
 EOF
+)
 }
 
 function is_virtio_blk_not_attached() {
-    python3 <<- EOF
+    return $(python3 <<- EOF
 from scripts import disk_infrastructure
 
-print(disk_infrastructure.is_virtio_blk_not_attached(socket="${1}"))
+print(disk_infrastructure.is_virtio_blk_not_attached(sock="${1}"))
 EOF
+)
 }
 
 function check_number_of_virtio_blk_devices() {
-    python3 <<- EOF
+    return $(python3 <<- EOF
 from scripts import disk_infrastructure
 
 print(
@@ -44,6 +46,7 @@ print(
     )
 )
 EOF
+)
 }
 
 function create_and_expose_sybsystem_over_tcp() {
@@ -53,7 +56,7 @@ from scripts import disk_infrastructure
 disk_infrastructure.create_and_expose_subsystem_over_tcp(
     ip_addr="${1}",
     nqn="${2}",
-    port_to_expose=int("${3:-"$DEFAULT_NVME_PORT"}"),
+    port_to_expose="${3:-"$DEFAULT_NVME_PORT"}",
     storage_target_port=int("${4:-"$DEFAULT_SPDK_PORT"}")
 )
 EOF
@@ -108,7 +111,7 @@ print(
         trsvcid="${7:-"$DEFAULT_NVME_PORT"}",
 	    sma_port=int("${8:-"$DEFAULT_SMA_PORT"}")
     )
-)       
+)
 EOF
 }
 
@@ -132,7 +135,7 @@ EOF
 }
 
 function delete_virtio_blk() {
-    python3 <<- EOF
+    return $(python3 <<- EOF
 from scripts import disk_infrastructure
 
 print(
@@ -143,10 +146,11 @@ print(
     )
 )
 EOF
+)
 }
 
 function wait_until_port_on_ip_addr_open() {
-    python3 <<- EOF
+    return $(python3 <<- EOF
 from scripts import disk_infrastructure
 
 print(
@@ -157,4 +161,5 @@ print(
     )
 )
 EOF
+)
 }
