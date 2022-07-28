@@ -86,7 +86,8 @@ class ContainersDeploy:
         return return_codes
 
     def run_docker_from_image(self, image):
-        out, rc = self.cmd_sender_terminal.execute_as_root(f'docker run --mount type=bind,source="{WORKSPACE_PATH}",'
+        #TODO: Change WORKSPACE_PATH "/root/"
+        out, rc = self.cmd_sender_terminal.execute_as_root(f'docker run --mount type=bind,source="/home/berta/IPDK_workspace",'
                                                            f'target=/workspace -d -it --privileged --network host '
                                                            f'--entrypoint /bin/bash {image}')
         out = out.strip()
