@@ -1,12 +1,12 @@
 import os
 import sys
 import logging
-from typing import Tuple, List
+from typing import List
 
-from ipdk_intelfisz.ipdk.build.storage.python_system_tools.consts import WORKSPACE_PATH
 
 sys.path.append('../')
 
+from python_system_tools.consts import WORKSPACE_PATH
 from python_system_tools.extendedterminal import ExtendedTerminal
 from python_system_tools.setup import Setup
 

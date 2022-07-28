@@ -44,6 +44,71 @@ class TestCreateAndExposeSubsystemOverTCP(BaseTest):
 
 class TestCreateRamdriveAndAttachAsNsToSubsystem(BaseTest):
 
+    VOLUME_ID = []
+
+    def setUp(self):
+        path = Path(os.getcwd())
+        data_path = os.path.join(path.parent.absolute(), "python_system_tools/data.json")
+        with open(file=data_path) as f:
+            self.data = json.load(f)
+
+        self.ip_address = self.data["proxy_address"]
+        self.user_name = self.data["user"]
+        self.password = self.data['password']
+        self.nqn = "nqn.2016-06.io.spdk:cnode0"
+        self.spdk_port = 5260
+
+        self.proxy_terminal = Docker(
+            self.ip_address, self.user_name, self.password
+        )
+        self.test_driver_id = self.proxy_terminal.get_docker_id(docker_image="test-driver")
+
+    def runTest(self):
+        for n_ramdrive in range(63):
+            cmd = f"cd /workspace/ipdk/build/storage/ && python -c \\\"from scripts.disk_infrastructure import " \
+                  "create_ramdrive_and_attach_as_ns_to_subsystem; print(create_ramdrive_and_attach_as_ns_to_subsystem(" \
+                  f"{self.ip_address}, 'Malloc{n_ramdrive}', {(n_ramdrive+1)*16}, {self.nqn}, {self.spdk_port}))\\\""
+            volume_id, _ = self.proxy_terminal.execute_in_docker(cmd=cmd, container_id=self.test_driver_id)
+            self.VOLUME_ID.append(volume_id)
+
+    def tearDown(self):
+        pass
+
+class TestCreateRamdriveAndAttachAsNsToSubsystem64(BaseTest):
+
+    VOLUME_ID = []
+
+    def setUp(self):
+        path = Path(os.getcwd())
+        data_path = os.path.join(path.parent.absolute(), "python_system_tools/data.json")
+        with open(file=data_path) as f:
+            self.data = json.load(f)
+
+        self.ip_address = self.data["proxy_address"]
+        self.user_name = self.data["user"]
+        self.password = self.data['password']
+        self.nqn = "nqn.2016-06.io.spdk:cnode0"
+        self.spdk_port = 5260
+
+        self.proxy_terminal = Docker(
+            self.ip_address, self.user_name, self.password
+        )
+        self.test_driver_id = self.proxy_terminal.get_docker_id(docker_image="test-driver")
+
+    def runTest(self):
+        for n_ramdrive in range(63):
+            cmd = f"cd /workspace/ipdk/build/storage/ && python -c \\\"from scripts.disk_infrastructure import " \
+                  "create_ramdrive_and_attach_as_ns_to_subsystem; print(create_ramdrive_and_attach_as_ns_to_subsystem(" \
+                  f"{self.ip_address}, 'Malloc{n_ramdrive}', {(n_ramdrive+1)*16}, {self.nqn}, {self.spdk_port}))\\\""
+            volume_id, _ = self.proxy_terminal.execute_in_docker(cmd=cmd, container_id=self.test_driver_id)
+            self.VOLUME_ID.append(volume_id)
+
+    def tearDown(self):
+        pass
+
+
+class TestCreateRamdriveAndAttachAsNsToSubsystemAboveMax(BaseTest):
+
     VOLUME_ID = ""
 
     def setUp(self):
@@ -74,7 +139,6 @@ class TestCreateRamdriveAndAttachAsNsToSubsystem(BaseTest):
     def tearDown(self):
         pass
 
-
 class TestCreateVirtioBlk(BaseTest):
 
     DEVICE_HANDLE = ""
@@ -100,7 +164,7 @@ class TestCreateVirtioBlk(BaseTest):
         self.test_driver_id = self.proxy_terminal.get_docker_id(docker_image="test-driver")
 
     def runTest(self):
-        volume_id = TestCreateRamdriveAndAttachAsNsToSubsystem.VOLUME_ID
+        volume_id = TestCreateRamdriveAndAttachAsNsToSubsystem64.VOLUME_ID[0]
         cmd = f"cd /workspace/ipdk/build/storage/ && python -c \\\"from scripts.disk_infrastructure import " \
               f"create_virtio_blk; print(create_virtio_blk({self.ip_address}, {volume_id}, '0', " \
               f"{self.virtual_id}, {self.nqn}, {self.ip_address}, {self.nvme_port}, {self.sma_port}))\\\""
@@ -143,7 +207,7 @@ class TestDeleteVirtioBlk(BaseTest):
         pass
 
 
-class TestCreateVirtioBlk_64(BaseTest):
+class TestCreateVirtioBlk64(BaseTest):
 
     def setUp(self):
         path = Path(os.getcwd())
@@ -167,7 +231,7 @@ class TestCreateVirtioBlk_64(BaseTest):
 
     def runTest(self):
         volume_id = TestCreateRamdriveAndAttachAsNsToSubsystem.VOLUME_ID
-        for n_virtio_blk in range(64):
+        for n_virtio_blk in range(63):
             cmd = f"cd /workspace/ipdk/build/storage/ && python -c \\\"from scripts.disk_infrastructure import " \
                   f"create_virtio_blk; print(create_virtio_blk({self.ip_address}, {volume_id}, '{n_virtio_blk}', " \
                   f"{self.virtual_id}, {self.nqn}, {self.ip_address}, {self.nvme_port}, {self.sma_port}))\\\""
