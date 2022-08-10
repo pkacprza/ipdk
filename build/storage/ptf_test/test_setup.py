@@ -1,7 +1,7 @@
 import json
 import logging
-import os
 import re
+import os
 import sys
 import time
 from pathlib import Path
@@ -19,8 +19,8 @@ from ptf.base_tests import BaseTest
 class TestOS(BaseTest):
 
     def setUp(self):
-        path = Path(os.getcwd())
-        data_path = os.path.join(path.parent.absolute(), "python_system_tools/data.json")
+        path = Path.cwd()
+        data_path = path.parent / "python_system_tools/data.json"
         with open(file=data_path) as f:
             self.data = json.load(f)
         self.setup_storage = Setup(
@@ -28,6 +28,7 @@ class TestOS(BaseTest):
         self.setup_proxy = Setup(ExtendedTerminal(self.data["proxy_address"], self.data["user"], self.data["password"]))
 
     def runTest(self):
+        print(self.setup_storage.os)
         assert self.setup_storage.os in ("Fedora", "Ubuntu")
         assert self.setup_proxy.os in ("Fedora", "Ubuntu")
 
@@ -38,8 +39,8 @@ class TestOS(BaseTest):
 class TestPM(BaseTest):
 
     def setUp(self):
-        path = Path(os.getcwd())
-        data_path = os.path.join(path.parent.absolute(), "python_system_tools/data.json")
+        path = Path.cwd()
+        data_path = path.parent / "python_system_tools/data.json"
         with open(file=data_path) as f:
             self.data = json.load(f)
         self.setup_storage = Setup(
@@ -57,8 +58,8 @@ class TestPM(BaseTest):
 class TestCheckVirtualization(BaseTest):
 
     def setUp(self):
-        path = Path(os.getcwd())
-        data_path = os.path.join(path.parent.absolute(), "python_system_tools/data.json")
+        path = Path.cwd()
+        data_path = path.parent / "python_system_tools/data.json"
         with open(file=data_path) as f:
             self.data = json.load(f)
         self.setup_storage = Setup(
@@ -81,8 +82,8 @@ class TestCheckVirtualization(BaseTest):
 class TestCheckKVM(BaseTest):
 
     def setUp(self):
-        path = Path(os.getcwd())
-        data_path = os.path.join(path.parent.absolute(), "python_system_tools/data.json")
+        path = Path.cwd()
+        data_path = path.parent / "python_system_tools/data.json"
         with open(file=data_path) as f:
             self.data = json.load(f)
         self.setup_storage = Setup(
@@ -105,8 +106,8 @@ class TestCheckKVM(BaseTest):
 class TestSetupDockerCompose(BaseTest):
 
     def setUp(self):
-        path = Path(os.getcwd())
-        data_path = os.path.join(path.parent.absolute(), "python_system_tools/data.json")
+        path = Path.cwd()
+        data_path = path.parent / "python_system_tools/data.json"
         with open(file=data_path) as f:
             self.data = json.load(f)
         self.setup_storage = Setup(
@@ -129,8 +130,8 @@ class TestSetupDockerCompose(BaseTest):
 class TestSetupLibguestfsTools(BaseTest):
 
     def setUp(self):
-        path = Path(os.getcwd())
-        data_path = os.path.join(path.parent.absolute(), "python_system_tools/data.json")
+        path = Path.cwd()
+        data_path = path.parent / "python_system_tools/data.json"
         with open(file=data_path) as f:
             self.data = json.load(f)
         self.setup_storage = Setup(
@@ -153,8 +154,8 @@ class TestSetupLibguestfsTools(BaseTest):
 class TestInstalled(BaseTest):
 
     def setUp(self):
-        path = Path(os.getcwd())
-        data_path = os.path.join(path.parent.absolute(), "python_system_tools/data.json")
+        path = Path.cwd()
+        data_path = path.parent / "python_system_tools/data.json"
         with open(file=data_path) as f:
             self.data = json.load(f)
         self.setup_storage = Setup(
@@ -177,8 +178,8 @@ class TestInstalled(BaseTest):
 class TestCheckSecurityPolicies(BaseTest):
 
     def setUp(self):
-        path = Path(os.getcwd())
-        data_path = os.path.join(path.parent.absolute(), "python_system_tools/data.json")
+        path = Path.cwd()
+        data_path = path.parent / "python_system_tools/data.json"
         with open(file=data_path) as f:
             self.data = json.load(f)
         self.setup_storage = Setup(
@@ -201,32 +202,33 @@ class TestCheckSecurityPolicies(BaseTest):
 class TestRunVM(BaseTest):
 
     def setUp(self):
-        path = Path(os.getcwd())
-        data_path = os.path.join(path.parent.absolute(), "python_system_tools/data.json")
+        path = Path.cwd()
+        data_path = path.parent / "python_system_tools/data.json"
         with open(file=data_path) as f:
             self.data = json.load(f)
         self.terminal = ExtendedTerminal(self.data["address"], self.data["user"], self.data["password"])
 
     def runTest(self):
-        self.terminal.execute_as_root(cmd='SHARED_VOLUME=/home/berta/IPDK_workspace/SHARE UNIX_SERIAL=vm_socket '
-                                          '/home/berta/IPDK_workspace/ipdk/build/storage/scripts/vm/run_vm.sh &'
-                                          '> /dev/null &')
+        t = 60
+        pattern = 'vm.qcow2'
         out, _ = self.terminal.execute(cmd="ls /home/berta/IPDK_workspace/SHARE")
-        pattern = 'vm(_original)?.qcow2'
         result = re.search(pattern=pattern, string=out)
         if result is None:
             logging.error(f"Cannot find {pattern} in {out}")
-
-        result = result.group(0)
+            t = 420
+        self.terminal.execute_as_root(cmd='SHARED_VOLUME=/home/berta/IPDK_workspace/SHARE UNIX_SERIAL=vm_socket scripts/vm/run_vm.sh &> /dev/null &', cwd='/home/berta/IPDK_workspace/ipdk/build/storage')
+        time.sleep(t)
+        out, _ = self.terminal.execute(cmd="ls /home/berta/IPDK_workspace/SHARE")
+        result = re.search(pattern=pattern, string=out)
         assert result
 
-        logging.info("Waiting for the VM to start")
-        time.sleep(120)
-
-        user_out = send_command_over_unix_socket(f'{os.path.join(SHARE_DIR_PATH, "vm_socket")}', 'root', 2)
-        user_login_result = re.search(pattern='password', string=user_out)
+        user_out = send_command_over_unix_socket('/home/berta/IPDK_workspace/SHARE/vm_socket', 'root', 2)
+        print(f'USER_OUT = {user_out}')
+        user_login_result = re.search(pattern='Password', string=user_out)
         assert user_login_result
 
-        password_result = send_command_over_unix_socket(f'{os.path.join(SHARE_DIR_PATH, "vm_socket")}', 'root', 10)
+        password_result = send_command_over_unix_socket('/home/berta/IPDK_workspace/SHARE/vm_socket', 'root', 2)
+        print(f'PASSWORD_RESULT = {password_result}')
         user_password_result = re.search(pattern='root@', string=password_result)
         assert user_password_result
+

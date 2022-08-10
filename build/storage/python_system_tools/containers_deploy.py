@@ -81,7 +81,7 @@ class ContainersDeploy:
         return_codes.append(rc)
         _, rc = self.proxy_terminal.execute_as_root(cwd=self.storage_path,
                                                     cmd=f"AS_DAEMON=true SHARED_VOLUME={self.shared_volume_path} "
-                                                        f"scripts/run_proxy_container.sh",)
+                                                        f"scripts/run_ipu_storage_container.sh",)
         return_codes.append(rc)
         return return_codes
 
@@ -109,3 +109,4 @@ class ContainersDeploy:
             cmd="tests/it/run.sh", cwd=self.storage_path
         )
         return not rc
+
