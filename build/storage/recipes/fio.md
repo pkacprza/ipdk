@@ -1,12 +1,12 @@
 # Fio recipe
 
-This recipe describes how to run fio from Host to an ideal target
+This recipe describes how to run fio from a host to an ideal target
 with IPDK containers.
 
-For this recipe 2 machines required.
-They are referred as `storage-target-platform` and `proxy-container-platform`.
+For this recipe, two physical machines are required.
+They are referred as `storage-target-platform` and `ipu-storage-container-platform`.
 The containers running on those platforms are named `storage-target` and
-`proxy-container` respectively.
+`ipu-storage-container` respectively.
 
 To apply this scenario the following steps need to be applied:
 
@@ -18,7 +18,10 @@ the vm(step 5)
 3. Run fio. Execute the following command from `cmd-sender`
 ```
 $ echo -e $(no_grpc_proxy= grpc_cli call <host_ip_where_vm_is_run>:50051 \
-RunFio "pciAddress: '0000:01:00.0' fioArgs: '--direct=1 --rw=randrw --bs=4k --ioengine=libaio --iodepth=256 --runtime=1 --numjobs=4 --time_based --group_reporting --name=iops-test-job'")
+RunFio "deviceHandle: '$virtio_blk0' fioArgs: '\
+    {\"rw\":\"randrw\", \"direct\":1, \"bs\":\"4k\", \
+	\"iodepth\":256, \"ioengine\":\"libaio\", \"runtime\":1, \
+	\"name\":\"iops_test-job\", \"time_based\": 1, \"numjobs\": 4}'")
 ```
 
 Expected output

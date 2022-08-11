@@ -1,12 +1,13 @@
 # Hot-plug recipe
+
 This recipe describes how to perform virtio-blk hot-plug to a running KVM host.
 The virtio-blk device is backed up by an ideal target on `storage-target-platform`
 machine exposed over NVMe/TCP.
 
-For this recipe 2 machines required. They are referred as
-`storage-target-platform` and `proxy-container-platform`.
+For this recipe, two physical machines are required.
+They are referred as `storage-target-platform` and `ipu-storage-container-platform`.
 The containers running on those platforms are named `storage-target` and
-`proxy-container` respectively.
+`ipu-storage-container` respectively.
 
 To apply this scenario the following steps need to be applied:
 
@@ -49,7 +50,7 @@ $ malloc0=$(create_ramdrive_and_attach_as_ns_to_subsystem \
 5. Attach exposed ramdrive to the vm.
 Send from your `cmd-sender`
 ```
-$ virtio_blk0=$(create_virtio_blk <proxy_container_platform_ip> "${malloc0}" \
+$ virtio_blk0=$(create_virtio_blk <ipu_storage_container_platform_ip> "${malloc0}" \
 	"0" "0" nqn.2016-06.io.spdk:cnode0 <storage_target_platform_ip>)
 ```
 
@@ -77,10 +78,10 @@ zram0  252:0    0  964M  0 disk [SWAP]
 7. Perform unplug.
 Run the command below on `cmd-sender` to hot-unplug device
 ```
-delete_virtio_blk <proxy_container_platform_ip> "${virtio_blk0}"
+delete_virtio_blk <ipu_storage_container_platform_ip> "${virtio_blk0}"
 ```
 
-8. Check there is no virtio-blk device.
+8. Check that there is no virtio-blk device.
 Open the [vm console](environment_setup.md#vm-console) and run the following command
 ```
 $ lsblk

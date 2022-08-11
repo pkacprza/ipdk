@@ -1,5 +1,4 @@
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -14,8 +13,8 @@ from ptf.base_tests import BaseTest
 class TestImages(BaseTest):
 
     def setUp(self):
-        path = Path(os.getcwd())
-        data_path = os.path.join(path.parent.absolute(), "python_system_tools/data.json")
+        path = Path.cwd()
+        data_path = path.parent / "python_system_tools/data.json"
         with open(file=data_path) as f:
             self.data = json.load(f)
         self.docker_proxy = ExtendedTerminal(
@@ -31,11 +30,12 @@ class TestImages(BaseTest):
     def tearDown(self):
         pass
 
+
 class TestGetDockerID(BaseTest):
 
     def setUp(self):
-        path = Path(os.getcwd())
-        data_path = os.path.join(path.parent.absolute(), "python_system_tools/data.json")
+        path = Path.cwd()
+        data_path = path.parent / "python_system_tools/data.json"
         with open(file=data_path) as f:
             self.data = json.load(f)
         self.docker_proxy = Docker(
@@ -52,11 +52,12 @@ class TestGetDockerID(BaseTest):
     def tearDown(self):
         pass
 
+
 class TestExecuteInDocker(BaseTest):
 
     def setUp(self):
-        path = Path(os.getcwd())
-        data_path = os.path.join(path.parent.absolute(), "python_system_tools/data.json")
+        path = Path.cwd()
+        data_path = path.parent / "python_system_tools/data.json"
         with open(file=data_path) as f:
             self.data = json.load(f)
         self.docker_proxy = Docker(

@@ -1,9 +1,12 @@
 import os
 import sys
-from typing import Tuple
+import logging
+from typing import List
+
 
 sys.path.append('../')
 
+from python_system_tools.consts import WORKSPACE_PATH
 from python_system_tools.extendedterminal import ExtendedTerminal
 from python_system_tools.setup import Setup
 
@@ -38,7 +41,8 @@ class ContainersDeploy:
     """
 
     def __init__(
-        self, proxy_terminal: ExtendedTerminal, storage_terminal: ExtendedTerminal
+        self, proxy_terminal: ExtendedTerminal, storage_terminal: ExtendedTerminal,
+            cmd_sender_terminal: ExtendedTerminal
     ):
         """
         Parameters
@@ -51,6 +55,8 @@ class ContainersDeploy:
 
         self.proxy_terminal = proxy_terminal
         self.storage_terminal = storage_terminal
+
+        self.cmd_sender_terminal = cmd_sender_terminal
         self.workspace_path = "/home/berta/IPDK_workspace/"
         self.repo_path = os.path.join(self.workspace_path, "ipdk")
         self.storage_path = os.path.join(
@@ -59,7 +65,7 @@ class ContainersDeploy:
         )
         self.shared_volume_path = os.path.join(self.workspace_path, "SHARE")
 
-    def run_docker_containers(self) -> Tuple[int, int]:
+    def run_docker_containers(self) -> List[int]:
         """
         Run storage target container and proxy container
 
@@ -76,8 +82,18 @@ class ContainersDeploy:
         return_codes.append(rc)
         _, rc = self.proxy_terminal.execute_as_root(cwd=self.storage_path,
                                                     cmd=f"AS_DAEMON=true SHARED_VOLUME={self.shared_volume_path} "
-                                                        f"scripts/run_proxy_container.sh",)
+                                                        f"scripts/run_ipu_storage_container.sh",)
         return_codes.append(rc)
+        return return_codes
+
+    def run_docker_from_image(self, image):
+        #TODO: Change WORKSPACE_PATH "/root/"
+        out, rc = self.cmd_sender_terminal.execute_as_root(f'docker run --mount type=bind,source="/home/berta/IPDK_workspace",'
+                                                           f'target=/workspace -d -it --privileged --network host '
+                                                           f'--entrypoint /bin/bash {image}')
+        out = out.strip()
+        logging.info(f"Docker started with id: {out}")
+        return rc
 
     def run_vm_instance_on_proxy_container_platform(self):
         """Run VM on a proxy container"""

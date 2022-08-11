@@ -8,6 +8,9 @@
 
 IP_ADDR="${IP_ADDR:-"0.0.0.0"}"
 PORT="${PORT:-50051}"
+# Set this variable below if it is needed to attach/change
+# customization at container start-up
+CUSTOMIZATION_DIR="${CUSTOMIZATION_DIR:-}"
 
 scripts_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
 
@@ -37,11 +40,17 @@ if [[ $(docker images --filter=reference='host-target' -q) == "" ]]; then
     bash "${scripts_dir}"/build_container.sh host-target
 fi
 
-IMAGE_NAME="host-target"
+export IMAGE_NAME="host-target"
 ARGS=()
 ARGS+=("-v" "/dev:/dev")
 ARGS+=("-e" "IP_ADDR=${IP_ADDR}")
 ARGS+=("-e" "PORT=${PORT}")
+if [[ -n "$CUSTOMIZATION_DIR" ]]; then
+    customization_dir_in_container="/customizations"
+    ARGS+=("-v" "$(realpath "$CUSTOMIZATION_DIR"):$customization_dir_in_container")
+    ARGS+=("-e" "CUSTOMIZATION_DIR_IN_CONTAINER=$customization_dir_in_container")
+fi
 
 # shellcheck source=./scripts/run_container.sh
+# shellcheck disable=SC1091,SC1090
 source "${scripts_dir}/run_container.sh"

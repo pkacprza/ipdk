@@ -4,42 +4,76 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-from concurrent import futures
-
 import grpc
-from grpc_reflection.v1alpha import reflection
+import logging
 import host_target_pb2
 import host_target_pb2_grpc
-from device_exerciser import DeviceExerciser
-from fio_runner import run_fio
-from pci_devices import get_virtio_blk_path_by_pci_address
-
-
-class InvalidHotPlugProvider(RuntimeError):
-    def __init__(self, message):
-        super().__init__(message)
+from concurrent import futures
+from grpc_reflection.v1alpha import reflection
+from device_exerciser_kvm import DeviceExerciserKvm
+from device_exerciser_if import *
+from device_exerciser_customization import find_make_custom_device_exerciser
+from fio_args import FioArgs, FioArgsError
 
 
 class HostTargetService(host_target_pb2_grpc.HostTargetServicer):
-    def __init__(self, fio_runner, virtio_blk_detector):
+    def __init__(
+        self,
+        device_exerciser,
+    ):
         super().__init__()
-        self.device_exerciser = DeviceExerciser(fio_runner, virtio_blk_detector)
+        self._device_exerciser = device_exerciser
 
     def RunFio(self, request, context):
+        logging.debug(f"RunFio: request:'{request}'")
         output = None
         try:
-            output = self.device_exerciser.run_fio(request.pciAddress, request.fioArgs)
+            output = self._device_exerciser.run_fio(
+                request.deviceHandle, FioArgs(request.fioArgs)
+            )
         except BaseException as ex:
+            logging.error("Service exception: '" + str(ex) + "'")
             context.set_code(grpc.StatusCode.FAILED_PRECONDITION)
             context.set_details(str(ex))
         return host_target_pb2.RunFioReply(fioOutput=output)
 
 
-def run_grpc_server(ip_address, port, server_creator=grpc.server):
+def make_default_device_exerciser() -> DeviceExerciserIf:
+    return DeviceExerciserKvm()
+
+
+def get_device_exerciser(
+    customization_path,
+    find_make_custom_device_exerciser=find_make_custom_device_exerciser,
+) -> DeviceExerciserIf:
+    make_custom_device_exerciser = find_make_custom_device_exerciser(customization_path)
+    device_exerciser = None
+    if make_custom_device_exerciser:
+        logging.info(
+            "Function to create customized exerciser is provided. Creating one."
+        )
+        device_exerciser = make_custom_device_exerciser()
+    else:
+        logging.info("Use default device exerciser.")
+        device_exerciser = make_default_device_exerciser()
+    if not device_exerciser or not issubclass(
+        type(device_exerciser), DeviceExerciserIf
+    ):
+        raise RuntimeError("No device exerciser created.")
+
+    return device_exerciser
+
+
+def run_grpc_server(
+    ip_address,
+    port,
+    customization_dir,
+    server_creator=grpc.server,
+):
     try:
         server = server_creator(futures.ThreadPoolExecutor(max_workers=10))
         host_target_pb2_grpc.add_HostTargetServicer_to_server(
-            HostTargetService(run_fio, get_virtio_blk_path_by_pci_address), server
+            HostTargetService(get_device_exerciser(customization_dir)), server
         )
         service_names = (
             host_target_pb2.DESCRIPTOR.services_by_name["HostTarget"].full_name,
@@ -53,5 +87,5 @@ def run_grpc_server(ip_address, port, server_creator=grpc.server):
     except KeyboardInterrupt as ex:
         return 0
     except BaseException as ex:
-        print("Couldn't run gRPC server. Error: " + str(ex))
+        logging.error("Couldn't run gRPC server. Error: " + str(ex))
         return 1

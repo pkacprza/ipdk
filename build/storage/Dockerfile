@@ -17,12 +17,11 @@ ARG HTTPS_PROXY
 ARG NO_PROXY
 ARG SPDK_VERSION
 
-RUN dnf install -y git
+RUN dnf install -y git && dnf clean all
 COPY spdk/ /spdk
 RUN mkdir /spdk-rpm
 COPY core/build_base/pre-install /install
-RUN chmod +x /install
-RUN /install
+RUN chmod +x /install && /install
 
 ################################################################################
 # spdk
@@ -45,13 +44,12 @@ RUN mkdir /spdk-rpm
 COPY --from=base /spdk-rpm/*.rpm /spdk-rpm/
 COPY --from=base /spdk-rpm/fio /spdk-rpm/
 
-RUN dnf install -y python python3-pip
-RUN python -m pip install grpcio grpcio-tools
+# hadolint ignore=DL3013
+RUN dnf install -y python python3-pip && dnf clean all && python -m pip install --no-cache-dir grpcio grpcio-tools
 
 # Wrap up the image
 COPY core/build_base/post-install /install
-RUN chmod +x /install
-RUN /install
+RUN chmod +x /install && /install
 
 
 ################################################################################
@@ -67,7 +65,7 @@ ARG HTTP_PROXY
 ARG HTTPS_PROXY
 ARG NO_PROXY
 
-RUN dnf install -y socat
+RUN dnf install -y socat && dnf clean all
 COPY core/spdk-app/init /init
 
 ENTRYPOINT ["/init"]
@@ -76,8 +74,8 @@ ENTRYPOINT ["/init"]
 ################################################################################
 # storage-target
 #
-# This image should be place on a dedicated machine and responsible for exposing
-# ideal storage target(SPDK Malloc bdev) over NVMe/TCP
+# This image should be placed on a dedicated machine and responsible for
+# exposing ideal storage target (SPDK Malloc bdev) over NVMe/TCP
 # Configuration is performed by means of SPDK Json rpc.
 ################################################################################
 FROM spdk-app AS storage-target
@@ -87,22 +85,22 @@ ARG HTTPS_PROXY
 ARG NO_PROXY
 
 ################################################################################
-# proxy-container
+# ipu-storage-container
 #
-# This image is placed on IPU and exposing storage-target NVMe/TCP devices
+# This image is placed on IPU and attaching to storage-target NVMe/TCP devices.
 # It is responsible for creation of vhost virtio-blk devices and exposing them
 # to hosts(KVM or physical ones)
 ################################################################################
-FROM spdk as proxy-container
+FROM spdk as ipu-storage-container
 
 ARG HTTP_PROXY
 ARG HTTPS_PROXY
 ARG NO_PROXY
 
-RUN dnf install -y socat
-RUN pip install pyyaml
+# hadolint ignore=DL3013
+RUN dnf install -y socat && dnf clean all && pip install --no-cache-dir pyyaml
 
-COPY core/proxy-container/init /init
+COPY core/ipu-storage-container/init /init
 COPY --from=spdk-app /init /init_spdk
 
 ENTRYPOINT [ "/init" ]
@@ -112,8 +110,8 @@ ENTRYPOINT [ "/init" ]
 # host-target
 #
 # This image is responsible for running fio payload over different pci devices.
-# It has to be placed into host(a vm for KVM case or physical host for IPU case)
-# It uses gRPC to expose this service.
+# It has to be placed into host (a vm for KVM case or physical host for IPU
+# case). It uses gRPC to expose this service.
 ################################################################################
 FROM fedora:36 AS host-target
 
@@ -121,8 +119,8 @@ ARG HTTP_PROXY
 ARG HTTPS_PROXY
 ARG NO_PROXY
 
-RUN dnf install -y python fio python3-pip
-RUN python -m pip install grpcio grpcio-tools grpcio-reflection
+# hadolint ignore=DL3013
+RUN dnf install -y python fio python3-pip && dnf clean all && python -m pip install --no-cache-dir grpcio grpcio-tools grpcio-reflection
 
 COPY core/host-target/init /init
 COPY core/host-target/*.py /
@@ -130,6 +128,9 @@ COPY core/host-target/host_target.proto /host_target.proto
 
 RUN python -m grpc_tools.protoc -I/ --python_out=. --grpc_python_out=/ \
     /host_target.proto
+
+ENV CUSTOMIZATION_DIR_IN_CONTAINER=/customizations
+COPY core/host-target/customizations $CUSTOMIZATION_DIR_IN_CONTAINER
 
 ENTRYPOINT [ "/init" ]
 
@@ -142,13 +143,16 @@ ARG HTTP_PROXY
 ARG HTTPS_PROXY
 ARG NO_PROXY
 
-RUN dnf install -y python fio python3-pip
-RUN python -m pip install grpcio-reflection pyfakefs
+# hadolint ignore=DL3013
+RUN dnf install -y python fio python3-pip && dnf clean all && python -m pip install --no-cache-dir grpcio-reflection pyfakefs
 
 COPY tests/ut/host-target /host-target/tests
 COPY --from=host-target fio_runner.py /host-target/src/
+COPY --from=host-target fio_args.py /host-target/src/
 COPY --from=host-target pci_devices.py /host-target/src/
-COPY --from=host-target device_exerciser.py /host-target/src/
+COPY --from=host-target device_exerciser_kvm.py /host-target/src/
+COPY --from=host-target device_exerciser_if.py /host-target/src/
+COPY --from=host-target device_exerciser_customization.py /host-target/src/
 COPY --from=host-target host_target_main.py /host-target/src/
 COPY --from=host-target host_target_grpc_server.py /host-target/src/
 COPY --from=host-target host_target_*pb2.py /host-target/generated/

@@ -9,23 +9,20 @@ import os
 
 from fio_runner import run_fio
 from fio_runner import FioExecutionError
+from fio_args import FioArgs
 
 
 class FioRunner(unittest.TestCase):
     def setUp(self):
         self.fio_file = "test"
-        self.fio_args = "--name=test --size=4MB --filename=test"
+        self.fio_args = FioArgs('{"name":"test", "size":"4MB", "filename":"test"}')
 
     def tearDown(self):
         if os.path.exists(self.fio_file):
             os.remove(self.fio_file)
 
     def test_successful_fio_run(self):
-        try:
-            run_fio(self.fio_args)
-        except FioExecutionError as ex:
-            self.fail(str(ex))
-
+        run_fio(self.fio_args)
         self.assertTrue(os.path.exists(self.fio_file))
 
     def test_successful_fio_run_output(self):
@@ -36,14 +33,10 @@ class FioRunner(unittest.TestCase):
         with self.assertRaises(FioExecutionError) as ex:
             run_fio("some-non-existing-arg")
 
-    def test_pass_invalid_arg_type(self):
+    def test_empty_fio_arg(self):
         with self.assertRaises(FioExecutionError) as ex:
-            run_fio(123)
+            run_fio("")
 
-    def test_no_concat_cmds_allowed(self):
+    def test_none_fio_arg(self):
         with self.assertRaises(FioExecutionError) as ex:
-            run_fio("ls -l && ls")
-        with self.assertRaises(FioExecutionError) as ex:
-            run_fio("ls -l || ls")
-        with self.assertRaises(FioExecutionError) as ex:
-            run_fio("ls -l ; ls")
+            run_fio(None)
