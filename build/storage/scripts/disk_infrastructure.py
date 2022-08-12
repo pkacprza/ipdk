@@ -9,6 +9,8 @@ import uuid
 
 from scripts import socket_functions
 
+spdk_scripts_path = "/home/berta/IPDK_workspace/ipdk/build/storage/spdk/scripts"
+sys.path.append(spdk_scripts_path)
 sys.path.append("/usr/libexec/spdk/scripts")
 sma_client = importlib.import_module("sma-client")
 import rpc
@@ -159,6 +161,7 @@ def create_virtio_blk_without_disk_check(
 
 
 def delete_virtio_blk(
+    ipu_storage_container_ip: str, device_handle: str, sma_port: int
 ) -> bool:
     request = {"method": "DeleteDevice", "params": {"handle": device_handle}}
     try:
