@@ -73,9 +73,9 @@ check_number_of_virtio_blk_devices "${vm_serial}" 3
 echo ""
 echo "### Create 2 nvme devices ###"
 nvme_physical_id=4
-nvme0=$(create_nvme_device "$ipu_storage_container_ip" "$nvme_physical_id" 0 | jq -r '.handle')
+nvme0=$(create_nvme_device "$ipu_storage_container_ip" "$nvme_physical_id" 0)
 nvme_physical_id=5
-nvme1=$(create_nvme_device "$ipu_storage_container_ip" "$nvme_physical_id" 0 | jq -r '.handle')
+nvme1=$(create_nvme_device "$ipu_storage_container_ip" "$nvme_physical_id" 0)
 get_output_from_unix_socket "${vm_serial}" 3
 
 echo ""

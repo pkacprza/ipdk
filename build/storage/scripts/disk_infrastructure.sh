@@ -218,7 +218,7 @@ function wait_until_port_on_ip_addr_open() {
 	return 1
 }
 
-function create_nvme_device() {
+function _create_nvme_device() {
 	local ipu_storage_container_ip="$1"
 	local physical_id="$2"
 	local virtual_id="$3"
@@ -235,13 +235,16 @@ function create_nvme_device() {
 			}
 		}
 	EOF
-	result=$?
-	if [[ result == 0 ]]; then
-		sleep 2
-	fi
-	return "$result"
 }
 
+function create_nvme_device() {
+	device_handle=$(_create_nvme_device "$@" | jq -r '.handle')
+	if [ -z "$device_handle" ]; then
+		return 1
+	fi
+	sleep 2
+	echo "$device_handle"
+}
 
 function attach_volume() {
 	local ipu_storage_container_ip="$1"
@@ -276,7 +279,7 @@ function attach_volume() {
 	EOF
 	result=$?
 	if [[ $result == 0 ]]; then
-		wait_for_volume_in_os "$device_handle" "$volume_id" 5
+		wait_for_volume_in_os "$device_handle" "$volume_id" 2
 	fi
 	return "$result"
 }
@@ -301,7 +304,7 @@ function detach_volume() {
 function check_number_of_nvme_devices() {
 	local vm_serial="${1}"
 	local expected_number_of_devices="${2}"
-	local number_of_devices=$(_get_number_of_blk_devices "${vm_serial}" "nvme")
+	local number_of_devices=$(_get_number_of_blk_devices "${vm_serial}" "nvme*n*")
 	if [[ "${number_of_devices}" != "${expected_number_of_devices}" ]]; then
 		echo "Required number of devices '${expected_number_of_devices}' does"
 		echo "not equal to actual number of devices '${number_of_devices}'"

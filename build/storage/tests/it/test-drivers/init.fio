@@ -78,7 +78,7 @@ function create_nvme_and_test_run_fio() {
 
 	echo "# Cretae NVME"
 	nvme=$(create_nvme_device "$ipu_storage_container_ip" \
-			"$physical_id" "0" | jq -r '.handle')
+			"$physical_id" "0")
 	attach_volume "$ipu_storage_container_ip" "$nvme" "$malloc0" "$nqn" \
 		"$storage_target_ip"
 
