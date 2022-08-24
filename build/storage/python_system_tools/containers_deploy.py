@@ -9,6 +9,7 @@ sys.path.append('../')
 from python_system_tools.consts import WORKSPACE_PATH
 from python_system_tools.extendedterminal import ExtendedTerminal
 from python_system_tools.setup import Setup
+from python_system_tools.data import ip_address_proxy, ip_address_storage, ip_address_cmd_sender, user_name, password
 
 
 class ContainersDeploy:
@@ -40,24 +41,13 @@ class ContainersDeploy:
         Run VM on a proxy container
     """
 
-    def __init__(
-        self, proxy_terminal: ExtendedTerminal, storage_terminal: ExtendedTerminal,
-            cmd_sender_terminal: ExtendedTerminal
-    ):
-        """
-        Parameters
-        ----------
-        proxy_terminal: ExtendedTerminal
-            A session with an SSH server on a proxy target
-        storage_terminal: ExtendedTerminal
-            A session with an SSH server on a storage target
-        """
+    def __init__(self):
 
-        self.proxy_terminal = proxy_terminal
-        self.storage_terminal = storage_terminal
+        self.proxy_terminal = ExtendedTerminal(address=ip_address_proxy, user=user_name, password=password)
+        self.storage_terminal = ExtendedTerminal(address=ip_address_storage, user=user_name, password=password)
+        self.cmd_sender_terminal = ExtendedTerminal(address=ip_address_cmd_sender, user=user_name, password=password)
 
-        self.cmd_sender_terminal = cmd_sender_terminal
-        self.workspace_path = "/home/berta/IPDK_workspace/"
+        self.workspace_path = WORKSPACE_PATH
         self.repo_path = os.path.join(self.workspace_path, "ipdk")
         self.storage_path = os.path.join(
             self.workspace_path,
@@ -87,8 +77,7 @@ class ContainersDeploy:
         return return_codes
 
     def run_docker_from_image(self, image):
-        #TODO: Change WORKSPACE_PATH "/root/"
-        out, rc = self.cmd_sender_terminal.execute_as_root(f'docker run --mount type=bind,source="/home/berta/IPDK_workspace",'
+        out, rc = self.cmd_sender_terminal.execute_as_root(f'docker run --mount type=bind,source="{WORKSPACE_PATH}",'
                                                            f'target=/workspace -d -it --privileged --network host '
                                                            f'--entrypoint /bin/bash {image}')
         out = out.strip()

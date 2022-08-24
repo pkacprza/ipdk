@@ -7,6 +7,7 @@ from typing import Optional
 sys.path.append('../')
 
 from python_system_tools.extendedterminal import ExtendedTerminal
+from python_system_tools.consts import WORKSPACE_PATH
 
 
 class UnknownOSError(Exception):
@@ -237,16 +238,16 @@ class Setup:
         return False
 
     def clone_repo(self, branch=None):
-        self.terminal.mkdir("/home/berta/IPDK_workspace")
+        self.terminal.mkdir(WORKSPACE_PATH)
         if branch:
             return self.terminal.execute_as_root(
                 f"git clone -b {branch} https://github.com/ipdk-io/ipdk.git",
-                cwd="/home/berta/IPDK_workspace",
+                cwd=WORKSPACE_PATH,
             )
         else:
             return self.terminal.execute_as_root(
                 "git clone https://github.com/ipdk-io/ipdk.git",
-                cwd="/home/berta/IPDK_workspace",
+                cwd=WORKSPACE_PATH,
             )
 
     def is_installed(self):
