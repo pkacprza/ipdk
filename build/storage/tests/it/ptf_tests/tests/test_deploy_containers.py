@@ -11,6 +11,7 @@ from tests.steps.initial_steps import (
     RunHostTargetContainer,
     RunIPUStorageContainer,
     RunStorageTargetContainer,
+    RunCMDSenderContainer,
 )
 from system_tools.test_platform import HostTargetPlatform, IPUStoragePlatform, StorageTargetPlatform
 from test_connection import BaseTerminalMixin
@@ -58,5 +59,9 @@ class TestDeployContainers(BaseTerminalMixin, BaseTest):
         ).run()
         RunHostTargetContainer(
             self.host_target_terminal,
+            storage_dir=os.path.join(clone_step.workdir, STORAGE_DIR_PATH),
+        ).run()
+        RunCMDSenderContainer(
+            self.ipu_storage_terminal,
             storage_dir=os.path.join(clone_step.workdir, STORAGE_DIR_PATH),
         ).run()

@@ -159,3 +159,30 @@ class RunHostTargetContainer(TestStep):
             if "host-target" in line:
                 is_container = True
         assert is_container
+
+
+class RunCMDSenderContainer(TestStep):
+    def __init__(
+        self,
+        terminal: SSHTerminal,
+        storage_dir: str,
+        is_teardown: bool = False,
+    ) -> None:
+        super().__init__(terminal, is_teardown)
+        self.storage_dir = storage_dir
+
+    def _step(self):
+        cmd = (
+            f"cd {self.storage_dir} && "
+            f"AS_DAEMON=true "
+            f"scripts/run_cmd_sender.sh"
+        )
+        self.terminal.execute(cmd)
+
+    def _assertion_after_step(self):
+        out = self.terminal.execute("docker ps")
+        is_container = False
+        for line in out:
+            if "cmd-sender" in line:
+                is_container = True
+        assert is_container
