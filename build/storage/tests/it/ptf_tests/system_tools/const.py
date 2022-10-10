@@ -3,6 +3,7 @@
 #
 
 STORAGE_DIR_PATH = "ipdk/build/storage"
+SHARE_DIR_PATH = "shared"
 NQN = 'nqn.2016-06.io.spdk:cnode0'
 SPDK_PORT = 5260
 NVME_PORT = '4420'
