@@ -1,7 +1,9 @@
+import re
 from ptf.base_tests import BaseTest
 from test_connection import BaseTerminalMixin
 from system_tools.const import NQN, NVME_PORT, SPDK_PORT
 from system_tools.ssh_terminal import CommandException
+from scripts.socket_functions import send_command_over_unix_socket
 
 def get_docker_containers_id_from_docker_image_name(terminal, docker_image_name):
     out = terminal.execute(f'sudo docker ps | grep "{docker_image_name}"')
@@ -43,9 +45,26 @@ class TestCreateRamdriveAndAttachAsNsToSubsystem64(BaseTerminalMixin, BaseTest):
         super().setUp()
 
         self.terminal = self.ipu_storage_terminal
+        t = 60
+        pattern = 'vm.qcow2'
+        out, _ = self.terminal.execute(cmd=f"ls {SHARE_DIR_PATH}")
+        result = re.search(pattern=pattern, string=out)
+        if result is None:
+            t = 420
         cmd = f'sudo SHARED_VOLUME={SHARE_DIR_PATH} UNIX_SERIAL=vm_socket scripts/vm/run_vm.sh &> /dev/null &'
         self.terminal.execute(f"cd {STORAGE_PATH} && {cmd}")
-        time.sleep(60)
+        time.sleep(t)
+        out, _ = self.terminal.execute(cmd=f"ls {SHARE_DIR_PATH}")
+        result = re.search(pattern=pattern, string=out)
+        assert result
+
+        user_out = send_command_over_unix_socket(f'{os.path.join(SHARE_DIR_PATH, "vm_socket")}', 'root', 2)
+        user_login_result = re.search(pattern='Password', string=user_out)
+        assert user_login_result
+
+        password_result = send_command_over_unix_socket(f'{os.path.join(SHARE_DIR_PATH, "vm_socket")}', 'root', 2)
+        user_password_result = re.search(pattern='root@', string=password_result)
+        assert user_password_result
         self.cmd_sender_id = get_docker_containers_id_from_docker_image_name(self.terminal, "cmd-sender")[0]
 
     def runTest(self):
