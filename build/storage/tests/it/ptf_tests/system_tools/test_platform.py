@@ -8,6 +8,7 @@ from system_tools.config import (
     StorageTargetConfig,
 )
 from system_tools.ssh_terminal import SSHTerminal
+import time
 
 
 class BaseTestPlatform:
@@ -115,6 +116,14 @@ class BaseTestPlatform:
         if not self._is_docker():
             self._install_docker()
 
+    def get_pid_from_port(self, port: int):
+        result = self.terminal.execute(f"sudo netstat -anop | grep -Po ':{port}\s.*LISTEN.*?\K\d+(?=/)' || true")
+        return result[0] if result else None
+
+    def kill_process_from_port(self, port: int):
+        """Raise error if there is no process in specific port"""
+        pid = self.get_pid_from_port(port)
+        self.terminal.execute(f"sudo kill -9 {pid}")
 
 class StorageTargetPlatform(BaseTestPlatform):
 
@@ -158,3 +167,41 @@ class HostTargetPlatform(BaseTestPlatform):
     # TODO add implementation
     def check_number_of_virtio_blks(self):
         return 'int'
+
+
+from tenacity import retry, stop_after_delay
+import os
+
+
+class VirtualMachine:
+
+    def __init__(self, platform):
+        self.platform = platform
+        self.storage_path = os.path.join(self.platform.terminal.config.workdir, "ipdk/build/storage")
+        self.share_path = os.path.join(self.platform.terminal.config.workdir, "shared")
+        self.socket_path = os.path.join(self.share_path, 'vm_socket')
+
+    def run(self):
+        self.delete()
+        if self.platform.get_pid_from_port(5555):
+            raise Exception('There is process in 5555 port')
+        socket_path = os.path.join(self.share_path, 'vm_socket')
+        if os.path.exists(socket_path):
+            raise Exception('Socket path is not free')
+        cmd = f'SHARED_VOLUME={self.share_path} UNIX_SERIAL=vm_socket scripts/vm/run_vm.sh &> /dev/null &'
+        self.platform.terminal.execute(f"cd {self.storage_path} && {cmd}")
+        self._wait_to_run(5555)
+
+    def delete(self):
+        if self.platform.get_pid_from_port(5555):
+            self.platform.kill_process_from_port(5555)
+        if self.platform.get_pid_from_port(50051):
+            self.platform.kill_process_from_port(50051)
+        self.platform.terminal.execute(f'cd {self.share_path} && rm -rf $(ls)')
+
+    @retry(stop=stop_after_delay(600), reraise=True)
+    def _wait_to_run(self, port):
+        socket_path = os.path.join(self.share_path, 'vm_socket')
+        time.sleep(30)
+        if not self.platform.get_pid_from_port(port) or not os.path.exists(socket_path):
+            raise Exception('VM is not running')

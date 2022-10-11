@@ -21,7 +21,7 @@ class MainPlatformConfig(BaseConfig):
         self.password = os.getenv("MAIN_PLATFORM_PASSWORD")
         self.ip_address = os.getenv("MAIN_PLATFORM_IP_ADDRESS")
         self.port = os.getenv("MAIN_PLATFORM_PORT", 22)
-        self.workdir = os.getenv("MAIN_PLATFORM_WORKDIR", f"/home/{self.username}/workdir")
+        self.workdir = os.getenv("MAIN_PLATFORM_WORKDIR", f"/home/{self.username}/ipdk_tests_workdir")
 
 
 class StorageTargetConfig(MainPlatformConfig):
@@ -33,7 +33,7 @@ class StorageTargetConfig(MainPlatformConfig):
             self.password = os.getenv("STORAGE_TARGET_PASSWORD")
             self.ip_address = os.getenv("STORAGE_TARGET_IP_ADDRESS")
             self.port = os.getenv("STORAGE_TARGET_PORT", 22)
-            self.workdir = os.getenv("STORAGE_TARGET_WORKDIR", f"/home/{self.username}/workdir")
+            self.workdir = os.getenv("STORAGE_TARGET_WORKDIR", f"/home/{self.username}/ipdk_tests_workdir")
 
 
 class IPUStorageConfig(MainPlatformConfig):
@@ -45,7 +45,7 @@ class IPUStorageConfig(MainPlatformConfig):
             self.password = os.getenv("IPU_STORAGE_PASSWORD")
             self.ip_address = os.getenv("IPU_STORAGE_IP_ADDRESS")
             self.port = os.getenv("IPU_STORAGE_PORT", 22)
-            self.workdir = os.getenv("IPU_STORAGE_WORKDIR", f"/home/{self.username}/workdir")
+            self.workdir = os.getenv("IPU_STORAGE_WORKDIR", f"/home/{self.username}/ipdk_tests_workdir")
 
 
 class HostTargetConfig(MainPlatformConfig):
@@ -57,4 +57,4 @@ class HostTargetConfig(MainPlatformConfig):
             self.password = os.getenv("HOST_TARGET_PASSWORD")
             self.ip_address = os.getenv("HOST_TARGET_IP_ADDRESS")
             self.port = os.getenv("HOST_TARGET_PORT", 22)
-            self.workdir = os.getenv("HOST_TARGET_WORKDIR", f"/home/{self.username}/workdir")
+            self.workdir = os.getenv("HOST_TARGET_WORKDIR", f"/home/{self.username}/ipdk_tests_workdir")
