@@ -92,7 +92,7 @@ class TestCreateVirtioBlk64(BaseTerminalMixin, BaseTest):
         self.cmd_sender_id = get_docker_containers_id_from_docker_image_name(self.terminal, "cmd-sender")[0]
         self.vm = VirtualMachine(StorageTargetPlatform())
         self.vm.run()
-        time.sleep(600)  # change waiting for login
+        time.sleep(720)  # change waiting for login
         send_command_over_unix_socket(self.vm.socket_path, "root", 1)
         send_command_over_unix_socket(self.vm.socket_path, "root", 1)
 
