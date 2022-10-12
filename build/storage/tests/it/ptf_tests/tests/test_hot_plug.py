@@ -125,8 +125,8 @@ class TestDeleteVirtioBlk64(BaseTerminalMixin, BaseTest):
     def runTest(self):
         for device_handle in TestCreateVirtioBlk64.DEVICE_HANDLES:
             cmd = f"""docker exec {self.cmd_sender_id} """\
-                  f"""python -c "from scripts.disk_infrastructure import delete_virtio_blk; """\
-                  f"""print(delete_virtio_blk('{self.terminal.config.ip_address}', '{device_handle}', {SMA_PORT}))" """
+                  f"""python -c "from scripts.disk_infrastructure import delete_sma_device; """\
+                  f"""print(delete_sma_device('{self.terminal.config.ip_address}', '{device_handle}', {SMA_PORT}))" """
             self.terminal.execute(cmd)[0]
         cmd = 'ls -1 /dev'
         out = send_command_over_unix_socket(
