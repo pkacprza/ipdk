@@ -127,7 +127,7 @@ class TestDeleteVirtioBlk64(BaseTerminalMixin, BaseTest):
             cmd = f"""docker exec {self.cmd_sender_id} """\
                   f"""python -c "from scripts.disk_infrastructure import delete_virtio_blk; """\
                   f"""print(delete_virtio_blk('{self.terminal.config.ip_address}', '{device_handle}', {SMA_PORT}))" """
-            out = self.terminal.execute_in_docker(cmd)[0]
+            self.terminal.execute(cmd)[0]
         cmd = 'ls -1 /dev'
         out = send_command_over_unix_socket(
             sock=self.vm.socket_path, cmd=cmd, wait_for_secs=1
