@@ -69,12 +69,6 @@ class TestCreateRamdriveAndAttachAsNsToSubsystem64(BaseTerminalMixin, BaseTest):
     def setUp(self):
         super().setUp()
         self.terminal = self.storage_target_terminal
-        vm = VirtualMachine(StorageTargetPlatform())
-        vm.run()
-        out = send_command_over_unix_socket(vm.socket_path, "root", 1)
-        print(out)
-        out = send_command_over_unix_socket(vm.socket_path, "root", 1)
-        print(out)
         self.cmd_sender_id = get_docker_containers_id_from_docker_image_name(self.terminal, "cmd-sender")[0]
 
     def runTest(self):
@@ -97,6 +91,12 @@ class TestCreateVirtioBlk64(BaseTerminalMixin, BaseTest):
         self.terminal = self.storage_target_terminal
         self.cmd_sender_id = get_docker_containers_id_from_docker_image_name(self.terminal, "cmd-sender")[0]
         self.vm = VirtualMachine(StorageTargetPlatform())
+        self.vm.run()
+        time.sleep(100)
+        out = send_command_over_unix_socket(self.vm.socket_path, "root", 1)
+        print(out)
+        out = send_command_over_unix_socket(self.vm.socket_path, "root", 1)
+        print(out)
 
     def runTest(self):
         print(TestCreateRamdriveAndAttachAsNsToSubsystem64.VOLUME_IDS)
