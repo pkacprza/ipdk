@@ -93,10 +93,8 @@ class TestCreateVirtioBlk64(BaseTerminalMixin, BaseTest):
         self.vm = VirtualMachine(StorageTargetPlatform())
         self.vm.run()
         time.sleep(100)
-        out = send_command_over_unix_socket(self.vm.socket_path, "root", 1)
-        print(out)
-        out = send_command_over_unix_socket(self.vm.socket_path, "root", 1)
-        print(out)
+        send_command_over_unix_socket(self.vm.socket_path, "root", 1)
+        send_command_over_unix_socket(self.vm.socket_path, "root", 1)
 
     def runTest(self):
         print(TestCreateRamdriveAndAttachAsNsToSubsystem64.VOLUME_IDS)
@@ -110,11 +108,7 @@ class TestCreateVirtioBlk64(BaseTerminalMixin, BaseTest):
         out = send_command_over_unix_socket(
             sock=self.vm.socket_path, cmd=cmd, wait_for_secs=1
         )
-        print(out)
-        # import ipdb; ipdb.set_trace()
         number_of_virtio_blk_devices = len(re.findall("vd[a-z]+\\b", out))
-        print(TestCreateVirtioBlk64.DEVICE_HANDLES)
-        print(number_of_virtio_blk_devices)
         assert number_of_virtio_blk_devices == 64
 
     def tearDown(self):
