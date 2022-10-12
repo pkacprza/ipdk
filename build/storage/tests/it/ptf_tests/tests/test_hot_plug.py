@@ -92,12 +92,11 @@ class TestCreateVirtioBlk64(BaseTerminalMixin, BaseTest):
         self.cmd_sender_id = get_docker_containers_id_from_docker_image_name(self.terminal, "cmd-sender")[0]
         self.vm = VirtualMachine(StorageTargetPlatform())
         self.vm.run()
-        time.sleep(100)
+        time.sleep(100)  # change waiting for login
         send_command_over_unix_socket(self.vm.socket_path, "root", 1)
         send_command_over_unix_socket(self.vm.socket_path, "root", 1)
 
     def runTest(self):
-        print(TestCreateRamdriveAndAttachAsNsToSubsystem64.VOLUME_IDS)
         for physical_id, volume_id in enumerate(TestCreateRamdriveAndAttachAsNsToSubsystem64.VOLUME_IDS):
             cmd = f"""docker exec {self.cmd_sender_id} """\
                   f"""python -c "from scripts.disk_infrastructure import create_virtio_blk; """\
@@ -112,4 +111,29 @@ class TestCreateVirtioBlk64(BaseTerminalMixin, BaseTest):
         assert number_of_virtio_blk_devices == 64
 
     def tearDown(self):
-        self.vm.delete()
+        ...
+        # self.vm.delete()
+
+
+class TestDeleteVirtioBlk64(BaseTest):
+    def setUp(self):
+        super().setUp()
+        self.terminal = self.storage_target_terminal
+        self.cmd_sender_id = get_docker_containers_id_from_docker_image_name(self.terminal, "cmd-sender")[0]
+        self.vm = VirtualMachine(StorageTargetPlatform())
+
+    def runTest(self):
+        for device_handle in TestCreateVirtioBlk64.DEVICE_HANDLES:
+            cmd = f"""docker exec {self.cmd_sender_id} """\
+                  f"""python -c "from scripts.disk_infrastructure import delete_virtio_blk; """\
+                  f"""print(delete_virtio_blk('{self.terminal.config.ip_address}', '{device_handle}', {SMA_PORT}))" """
+            out = self.terminal.execute_in_docker(cmd)[0]
+        cmd = 'ls -1 /dev'
+        out = send_command_over_unix_socket(
+            sock=self.vm.socket_path, cmd=cmd, wait_for_secs=1
+        )
+        number_of_virtio_blk_devices = len(re.findall("vd[a-z]+\\b", out))
+        assert number_of_virtio_blk_devices == 0
+
+    def tearDown(self):
+        pass
