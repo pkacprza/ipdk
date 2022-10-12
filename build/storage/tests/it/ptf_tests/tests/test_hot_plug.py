@@ -115,7 +115,7 @@ class TestCreateVirtioBlk64(BaseTerminalMixin, BaseTest):
         # self.vm.delete()
 
 
-class TestDeleteVirtioBlk64(BaseTest):
+class TestDeleteVirtioBlk64(BaseTerminalMixin, BaseTest):
     def setUp(self):
         super().setUp()
         self.terminal = self.storage_target_terminal
