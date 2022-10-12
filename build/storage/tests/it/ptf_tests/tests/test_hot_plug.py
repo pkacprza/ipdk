@@ -84,8 +84,6 @@ class TestCreateRamdriveAndAttachAsNsToSubsystem64(BaseTerminalMixin, BaseTest):
         TestCreateRamdriveAndAttachAsNsToSubsystem64.VOLUME_IDS = volume_ids
 
 
-'''
-from scripts import socket_functions
 class TestCreateVirtioBlk64(BaseTerminalMixin, BaseTest):
 
     DEVICE_HANDLES = []
@@ -95,6 +93,8 @@ class TestCreateVirtioBlk64(BaseTerminalMixin, BaseTest):
         self.terminal = self.storage_target_terminal
         self.cmd_sender_id = get_docker_containers_id_from_docker_image_name(self.terminal, "cmd-sender")[0]
         self.vm = VirtualMachine(StorageTargetPlatform())
+        send_command_over_unix_socket(self.vm.socket_path, "root", 1)
+        send_command_over_unix_socket(self.vm.socket_path, "root", 1)
 
     def runTest(self):
         print(TestCreateRamdriveAndAttachAsNsToSubsystem64.VOLUME_IDS)
@@ -105,7 +105,7 @@ class TestCreateVirtioBlk64(BaseTerminalMixin, BaseTest):
             device_handle = self.terminal.execute(cmd)[0]
             TestCreateVirtioBlk64.DEVICE_HANDLES.append(device_handle.strip())
         cmd = 'lsblk --output "NAME"'
-        out = socket_functions.send_command_over_unix_socket(
+        out = send_command_over_unix_socket(
             sock=self.vm.socket_path, cmd=cmd, wait_for_secs=1
         )
         import ipdb; ipdb.set_trace()
@@ -116,5 +116,3 @@ class TestCreateVirtioBlk64(BaseTerminalMixin, BaseTest):
 
     def tearDown(self):
         self.vm.delete()
-
-'''
