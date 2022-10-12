@@ -93,22 +93,24 @@ class TestCreateVirtioBlk64(BaseTerminalMixin, BaseTest):
         self.terminal = self.storage_target_terminal
         self.cmd_sender_id = get_docker_containers_id_from_docker_image_name(self.terminal, "cmd-sender")[0]
         self.vm = VirtualMachine(StorageTargetPlatform())
+        out = send_command_over_unix_socket(self.vm.socket_path, "root", 1)
+        print(out)
         send_command_over_unix_socket(self.vm.socket_path, "root", 1)
-        send_command_over_unix_socket(self.vm.socket_path, "root", 1)
+        print(out)
 
     def runTest(self):
         print(TestCreateRamdriveAndAttachAsNsToSubsystem64.VOLUME_IDS)
         for physical_id, volume_id in enumerate(TestCreateRamdriveAndAttachAsNsToSubsystem64.VOLUME_IDS):
             cmd = f"""docker exec {self.cmd_sender_id} """\
                   f"""python -c "from scripts.disk_infrastructure import create_virtio_blk; """\
-                  """print(create_virtio_blk('{self.terminal.config.ip_address}', '{volume_id}', '{physical_id}', '0', '{NQN}', '{self.terminal.config.ip_address}', '{NVME_PORT}', {SMA_PORT}))" """
+                  f"""print(create_virtio_blk('{self.terminal.config.ip_address}', '{volume_id}', '{physical_id}', '0', '{NQN}', '{self.terminal.config.ip_address}', '{NVME_PORT}', {SMA_PORT}))" """
             device_handle = self.terminal.execute(cmd)[0]
             TestCreateVirtioBlk64.DEVICE_HANDLES.append(device_handle.strip())
         cmd = 'lsblk --output "NAME"'
         out = send_command_over_unix_socket(
             sock=self.vm.socket_path, cmd=cmd, wait_for_secs=1
         )
-        import ipdb; ipdb.set_trace()
+        # import ipdb; ipdb.set_trace()
         number_of_virtio_blk_devices = len(re.findall("vd", out))
         print(TestCreateVirtioBlk64.DEVICE_HANDLES)
         print(number_of_virtio_blk_devices)
