@@ -5,33 +5,27 @@
 import os
 
 from ptf.base_tests import BaseTest
+from test_connection import BaseTerminalMixin
+
 from system_tools.const import STORAGE_DIR_PATH
-from tests.steps.initial_steps import (
+from tests.steps.initial import (
     CloneIPDKRepository,
+    RunCMDSenderContainer,
     RunHostTargetContainer,
     RunIPUStorageContainer,
     RunStorageTargetContainer,
-    RunCMDSenderContainer,
 )
-from system_tools.test_platform import HostTargetPlatform, IPUStoragePlatform, StorageTargetPlatform
-from test_connection import BaseTerminalMixin
 
 
 class TestTestPlatforms(BaseTerminalMixin, BaseTest):
-    def setUp(self):
-        super().setUp()
-        self.storage_target_platform = StorageTargetPlatform()
-        self.ipu_storage_platform = IPUStoragePlatform()
-        self.host_target_platform = HostTargetPlatform()
-
     def runTest(self):
-        self.storage_target_platform.set_system_setup()
-        self.ipu_storage_platform.set_system_setup()
-        self.host_target_platform.set_system_setup()
+        self.storage_target_terminal.platform.set_system_setup()
+        self.ipu_storage_terminal.platform.set_system_setup()
+        self.host_target_terminal.platform.set_system_setup()
 
-        self.storage_target_platform.check_system_setup()
-        self.ipu_storage_platform.check_system_setup()
-        self.host_target_platform.check_system_setup()
+        self.storage_target_terminal.platform.check_system_setup()
+        self.ipu_storage_terminal.platform.check_system_setup()
+        self.host_target_terminal.platform.check_system_setup()
 
 
 class TestDeployContainers(BaseTerminalMixin, BaseTest):

@@ -2,25 +2,20 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-from system_tools.config import (
-    HostTargetConfig,
-    IPUStorageConfig,
-    StorageTargetConfig,
-)
-from system_tools.ssh_terminal import SSHTerminal
-import time
+from system_tools.const import NQN, NVME_PORT, SMA_PORT, SPDK_PORT
+from system_tools.vm import VirtualMachine
 
 
 class BaseTestPlatform:
     """A base class used to represent operating system with needed libraries"""
 
-    def __init__(self, terminal: SSHTerminal):
+    def __init__(self, terminal):
         self.terminal = terminal
         self.pms = "dnf" if self._is_dnf() else "apt-get" if self._is_apt() else None
         self.system = self._os_system()
 
     def _os_system(self) -> str:
-        return self.terminal.execute("sudo cat /etc/os-release | grep ^ID=")[0][3:]
+        return self.terminal.execute("sudo cat /etc/os-release | grep ^ID=")[3:]
 
     def _is_dnf(self) -> bool:
         _, stdout, _ = self.terminal.client.exec_command("dnf --version")
@@ -38,7 +33,7 @@ class BaseTestPlatform:
         """Checks if VT-x/AMD-v support is enabled in BIOS"""
 
         expectations = ["vt-x", "amd-v", "full"]
-        out = self.terminal.execute("lscpu | grep -i virtualization")[0]
+        out = self.terminal.execute("lscpu | grep -i virtualization")
         for allowed_str in expectations:
             if allowed_str.upper() in out.upper():
                 return True
@@ -48,7 +43,7 @@ class BaseTestPlatform:
         """Checks if kvm modules are loaded"""
 
         expectations = ["kvm_intel", "kvm_amd"]
-        out = self.terminal.execute("lsmod | grep -i kvm")[0]
+        out = self.terminal.execute("lsmod | grep -i kvm")
         for allowed_str in expectations:
             if allowed_str.upper() in out.upper():
                 return True
@@ -97,17 +92,17 @@ class BaseTestPlatform:
     def check_system_setup(self):
         """Overwrite this method in specific platform if you don't want check all setup"""
         if not self._is_virtualization():
-            raise Exception('Virtualization is not setting properly')
+            raise Exception("Virtualization is not setting properly")
         if not self._is_kvm():
-            raise Exception('KVM is not setting properly')
+            raise Exception("KVM is not setting properly")
         if not self.pms:
-            raise Exception('Packet manager is not setting properly')
+            raise Exception("Packet manager is not setting properly")
         if not self._is_qemu():
-            raise Exception('QUEMU is not setting properly')
+            raise Exception("QUEMU is not setting properly")
         if not self._set_security_policies():
-            raise Exception('Security polices is not setting properly')
+            raise Exception("Security polices is not setting properly")
         if not self._is_docker():
-            raise Exception('Docker is not setting properly')
+            raise Exception("Docker is not setting properly")
 
     # TODO: after testing restore settings
     def set_system_setup(self):
@@ -117,91 +112,100 @@ class BaseTestPlatform:
             self._install_docker()
 
     def get_pid_from_port(self, port: int):
-        result = self.terminal.execute(f"sudo netstat -anop | grep -Po ':{port}\s.*LISTEN.*?\K\d+(?=/)' || true")
-        return result[0] if result else None
+        return self.terminal.execute(
+            f"sudo netstat -anop | grep -Po ':{port}\s.*LISTEN.*?\K\d+(?=/)' || true"
+        )
 
     def kill_process_from_port(self, port: int):
         """Raise error if there is no process in specific port"""
         pid = self.get_pid_from_port(port)
         self.terminal.execute(f"sudo kill -9 {pid}")
 
+
 class StorageTargetPlatform(BaseTestPlatform):
-
-    def __init__(self):
-        config = StorageTargetConfig()
-        terminal = SSHTerminal(config)
-        super().__init__(terminal)
-
-    # TODO add implementation
     def create_subsystem(self):
-        pass
+        cmd_sender_id = (
+            self.terminal.docker.get_docker_containers_id_from_docker_image_name(
+                "cmd-sender"
+            )[0]
+        )
+        self.terminal.execute(
+            f"""docker exec {cmd_sender_id} """
+            f"""python -c "from scripts.disk_infrastructure import create_and_expose_subsystem_over_tcp; """
+            f"""create_and_expose_subsystem_over_tcp"""
+            f"""('{self.terminal.config.ip_address}', '{NQN}', '{NVME_PORT}', {SPDK_PORT})" """
+        )
 
-    # TODO add implementation
-    def create_ramdrive(self):
-        return 'Guid'
+    def create_ramdrive(self, name):
+        """Create ramdrive and attach as ns to subsystem"""
+        cmd_sender_id = (
+            self.terminal.docker.get_docker_containers_id_from_docker_image_name(
+                "cmd-sender"
+            )[0]
+        )
+        cmd = (
+            f"""docker exec {cmd_sender_id} """
+            f"""python -c 'from scripts.disk_infrastructure import create_ramdrive_and_attach_as_ns_to_subsystem; """
+            f"""print(create_ramdrive_and_attach_as_ns_to_subsystem"""
+            f"""("{self.terminal.config.ip_address}", "{name}", 4, "{NQN}", {SPDK_PORT}))'"""
+        )
+        return self.terminal.execute(cmd)
 
 
 class IPUStoragePlatform(BaseTestPlatform):
-
-    def __init__(self):
-        config = IPUStorageConfig()
-        terminal = SSHTerminal(config)
+    def __init__(self, terminal):
         super().__init__(terminal)
+        # if vm is not running you have to do it
+        self.vm = VirtualMachine(terminal)
 
-    # TODO add implementation
-    def create_virtio_blk_device(self):
-        return 'VirtioBlkDevice'
+    def create_virtio_blk_device(self, volume_id, physical_id):
+        """
+        :return: device handle
+        """
+        cmd_sender_id = (
+            self.terminal.docker.get_docker_containers_id_from_docker_image_name(
+                "cmd-sender"
+            )[0]
+        )
+        cmd = (
+            f"""docker exec {cmd_sender_id} """
+            f"""python -c "from scripts.disk_infrastructure import create_virtio_blk; """
+            f"""print(create_virtio_blk"""
+            f"""('{self.terminal.config.ip_address}', '{volume_id}', '{physical_id}', '0', '{NQN}', """
+            f"""'{self.terminal.config.ip_address}', '{NVME_PORT}', {SMA_PORT}))" """
+        )
+        return self.terminal.execute(cmd)
+
+    def delete_virtio_blk_device(self, device_handle):
+        cmd_sender_id = (
+            self.terminal.docker.get_docker_containers_id_from_docker_image_name(
+                "cmd-sender"
+            )[0]
+        )
+        cmd = (
+            f"""docker exec {cmd_sender_id} """
+            f"""python -c "from scripts.disk_infrastructure import delete_sma_device; """
+            f"""print(delete_sma_device"""
+            f"""('{self.terminal.config.ip_address}', '{device_handle}', {SMA_PORT}))" """
+        )
+        return self.terminal.execute(cmd)
+
+    def get_number_of_virtio_blk_devices(self):
+        return self.vm.get_number_of_virtio_blk_devices()
 
 
 class HostTargetPlatform(BaseTestPlatform):
-
-    def __init__(self):
-        config = HostTargetConfig()
-        terminal = SSHTerminal(config)
-        super().__init__(terminal)
-
     # TODO add implementation
     def run_fio(self):
-        return 'FioOutput'
-
-    # TODO add implementation
-    def check_number_of_virtio_blks(self):
-        return 'int'
+        return "FioOutput"
 
 
-from tenacity import retry, stop_after_delay
-import os
+class Docker:
+    def __init__(self, terminal):
+        self.terminal = terminal
 
-
-class VirtualMachine:
-
-    def __init__(self, platform):
-        self.platform = platform
-        self.storage_path = os.path.join(self.platform.terminal.config.workdir, "ipdk/build/storage")
-        self.share_path = os.path.join(self.platform.terminal.config.workdir, "shared")
-        self.socket_path = os.path.join(self.share_path, 'vm_socket')
-
-    def run(self):
-        self.delete()
-        if self.platform.get_pid_from_port(5555):
-            raise Exception('There is process in 5555 port')
-        socket_path = os.path.join(self.share_path, 'vm_socket')
-        if os.path.exists(socket_path):
-            raise Exception('Socket path is not free')
-        cmd = f'SHARED_VOLUME={self.share_path} UNIX_SERIAL=vm_socket scripts/vm/run_vm.sh &> /dev/null &'
-        self.platform.terminal.execute(f"cd {self.storage_path} && {cmd}")
-        self._wait_to_run(5555)
-
-    def delete(self):
-        if self.platform.get_pid_from_port(5555):
-            self.platform.kill_process_from_port(5555)
-        if self.platform.get_pid_from_port(50051):
-            self.platform.kill_process_from_port(50051)
-        self.platform.terminal.execute(f'cd {self.share_path} && rm -rf $(ls)')
-
-    @retry(stop=stop_after_delay(600), reraise=True)
-    def _wait_to_run(self, port):
-        socket_path = os.path.join(self.share_path, 'vm_socket')
-        time.sleep(30)
-        if not self.platform.get_pid_from_port(port) or not os.path.exists(socket_path):
-            raise Exception('VM is not running')
+    def get_docker_containers_id_from_docker_image_name(self, docker_image_name):
+        out = self.terminal.lines_execute(
+            f'sudo docker ps | grep "{docker_image_name}"'
+        )
+        return [line.split()[0] for line in out]
