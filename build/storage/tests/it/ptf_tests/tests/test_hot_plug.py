@@ -136,4 +136,38 @@ class TestDeleteVirtioBlk64(BaseTerminalMixin, BaseTest):
         assert number_of_virtio_blk_devices == 0
 
     def tearDown(self):
-        self.vm.delete()
+        ...
+        #self.vm.delete()
+
+
+class ExposeDisk(BaseTerminalMixin, BaseTest):
+    def setUp(self):
+        super().setUp()
+        self.terminal = self.storage_target_terminal
+        self.cmd_sender_id = get_docker_containers_id_from_docker_image_name(self.terminal, "cmd-sender")[0]
+
+    def runTest(self):
+        volume_ids = []
+        for i in [0, 2]:
+            cmd = f"""docker exec {self.cmd_sender_id} """ \
+                  f"""python -c 'from scripts.disk_infrastructure import create_ramdrive_and_attach_as_ns_to_subsystem; """ \
+                  f"""print(create_ramdrive_and_attach_as_ns_to_subsystem("{self.terminal.config.ip_address}", "Malloc{i}", 4, "{NQN}", {SPDK_PORT}))'"""
+            volume_ids.append(self.terminal.execute(cmd)[0])
+        print(volume_ids)
+        assert len(volume_ids) == 2
+
+        exposed_disks = []
+        for physical_id, volume_id in zip([0, 2], ExposeDisk.VOLUME_IDS):
+            cmd = f"""docker exec {self.cmd_sender_id} """\
+                  f"""python -c "from scripts.disk_infrastructure import create_virtio_blk; """\
+                  f"""print(create_virtio_blk('{self.terminal.config.ip_address}', '{volume_id}', '{physical_id}', '0', '{NQN}', '{self.terminal.config.ip_address}', '{NVME_PORT}', {SMA_PORT}))" """
+            device_handle = self.terminal.execute(cmd)[0]
+            exposed_disks.append(device_handle.strip())
+        cmd = 'ls -1 /dev'
+        out = send_command_over_unix_socket(
+            sock=self.vm.socket_path, cmd=cmd, wait_for_secs=1
+        )
+        number_of_virtio_blk_devices = len(re.findall("vd[a-z]+\\b", out))
+        print(exposed_disks)
+        print(number_of_virtio_blk_devices)
+        assert number_of_virtio_blk_devices == 2
