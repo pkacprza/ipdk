@@ -14,6 +14,7 @@ from tests.steps.subsystem import CreateAndExposeSubsystemOverTCPStep
 from tests.steps.ramdrive import (
     CreateRamdriveAndAttachAsNsToSubsystem64Step,
     CreateRamdriveAndAttachAsNsToSubsystemStep,
+    CreateRamdriveAndAttachAsNsToSubsystemAbove64Step
 )
 from tests.steps.initial import (
     RunCMDSenderContainer,
@@ -24,6 +25,7 @@ from tests.steps.initial import (
 
 from tests.steps.virtio_blk import (
     CreateVirtioBlk64Step,
+    CreateVirtioBlkAbove64Step,
     DeleteVirtioBlk64Step,
     CreateVirtioBlkStep,
     DeleteVirtioBlkStep,
@@ -172,3 +174,30 @@ class TestDeleteVirtioBlk(BaseTerminalMixin, BaseTest):
 
     def tearDown(self):
         self.ipu_storage_terminal.platform.vm.delete()
+
+
+class TestCreateRamdriveAndAttachAsNsToSubsystemAbove64(BaseTerminalMixin, BaseTest):
+
+    VOLUME_IDS = []
+
+    def runTest(self):
+        volume_ids = CreateRamdriveAndAttachAsNsToSubsystemAbove64Step(
+            self.storage_target_terminal
+        ).run()
+        TestCreateRamdriveAndAttachAsNsToSubsystemAbove64.VOLUME_IDS = volume_ids
+
+
+class TestCreateVirtioBlkAbove64(BaseTerminalMixin, BaseTest):
+
+    DEVICE_HANDLES = []
+
+    def setUp(self):
+        super().setUp()
+        self.host_target_terminal.platform.vm.run("root", "root")
+
+    def runTest(self):
+        TestCreateVirtioBlkAbove64.DEVICE_HANDLES = CreateVirtioBlkAbove64Step(
+            self.ipu_storage_terminal,
+            TestCreateRamdriveAndAttachAsNsToSubsystemAbove64.VOLUME_IDS,
+            self.host_target_terminal.platform.vm,
+        ).run()
