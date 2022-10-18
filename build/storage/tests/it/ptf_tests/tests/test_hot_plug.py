@@ -176,6 +176,37 @@ class TestDeleteVirtioBlk(BaseTerminalMixin, BaseTest):
         self.ipu_storage_terminal.platform.vm.delete()
 
 
+class TestCreateAndExposeSubsystemOverTCP3(BaseTerminalMixin, BaseTest):
+
+    def setUp(self):
+        super().setUp()
+        self.ipu_storage_terminal.platform.vm.delete()
+        self.storage_target_terminal.delete_all_containers()
+        self.ipu_storage_terminal.delete_all_containers()
+        self.host_target_terminal.delete_all_containers()
+        workdir = f"/home/{self.ipu_storage_terminal.config.username}/ipdk_tests_workdir"
+        RunStorageTargetContainer(
+            self.storage_target_terminal,
+            storage_dir=os.path.join(workdir, STORAGE_DIR_PATH),
+        ).run()
+        RunIPUStorageContainer(
+            self.ipu_storage_terminal,
+            storage_dir=os.path.join(workdir, STORAGE_DIR_PATH),
+            shared_dir=os.path.join(workdir, "shared"),
+        ).run()
+        RunHostTargetContainer(
+            self.host_target_terminal,
+            storage_dir=os.path.join(workdir, STORAGE_DIR_PATH),
+        ).run()
+        RunCMDSenderContainer(
+            self.ipu_storage_terminal,
+            storage_dir=os.path.join(workdir, STORAGE_DIR_PATH),
+        ).run()
+
+    def runTest(self):
+        CreateAndExposeSubsystemOverTCPStep(self.storage_target_terminal).run()
+
+
 class TestCreateRamdriveAndAttachAsNsToSubsystemAbove64(BaseTerminalMixin, BaseTest):
 
     VOLUME_IDS = []
@@ -193,11 +224,11 @@ class TestCreateVirtioBlkAbove64(BaseTerminalMixin, BaseTest):
 
     def setUp(self):
         super().setUp()
-        self.host_target_terminal.platform.vm.run("root", "root")
+        self.ipu_storage_terminal.platform.vm.run("root", "root")
 
     def runTest(self):
         TestCreateVirtioBlkAbove64.DEVICE_HANDLES = CreateVirtioBlkAbove64Step(
             self.ipu_storage_terminal,
             TestCreateRamdriveAndAttachAsNsToSubsystemAbove64.VOLUME_IDS,
-            self.host_target_terminal.platform.vm,
+            self.ipu_storage_terminal.platform.vm,
         ).run()
