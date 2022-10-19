@@ -6,13 +6,11 @@ from typing import Optional
 
 from paramiko.client import AutoAddPolicy, SSHClient
 
-from system_tools.config import HostTargetConfig, IPUStorageConfig, StorageTargetConfig
-from system_tools.test_platform import (
-    Docker,
-    HostTargetPlatform,
-    IPUStoragePlatform,
-    StorageTargetPlatform,
-)
+from system_tools.config import (HostTargetConfig, IPUStorageConfig,
+                                 StorageTargetConfig)
+from system_tools.test_platform import (Docker, HostTargetPlatform,
+                                        IPUStoragePlatform,
+                                        StorageTargetPlatform)
 
 
 class CommandException(Exception):
@@ -52,13 +50,6 @@ class SSHTerminal:
     def lines_execute(self, cmd: str, timeout: int = None) -> Optional[list]:
         out = self.execute(cmd, timeout)
         return out.split("\n")
-
-    # TODO: add tracking running containers while testing and kill only relevant ones
-    def delete_all_containers(self):
-        """Delete all containers even currently running"""
-        out = self.execute("docker ps -aq")
-        if out:
-            self.execute("docker container rm -fv $(docker ps -aq)")
 
 
 class IPUStorageTerminal(SSHTerminal):

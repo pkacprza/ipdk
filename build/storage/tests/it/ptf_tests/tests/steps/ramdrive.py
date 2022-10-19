@@ -26,11 +26,13 @@ class CreateRamdriveAndAttachAsNsToSubsystem64Step(TestStep):
             volume_ids.append(ramdrive_id)
         self.volume_ids = volume_ids
 
-
     def run(self):
         self._step()
         self._assertion_after_step()
         return self.volume_ids
+
+    def _assertion_after_step(self):
+        assert len(self.volume_ids) == 64
 
 
 class CreateRamdriveAndAttachAsNsToSubsystemAbove64Step(TestStep):

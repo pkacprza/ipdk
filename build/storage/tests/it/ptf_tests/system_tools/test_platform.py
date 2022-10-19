@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+from tenacity import retry, stop_after_delay
+
 from system_tools.const import NQN, NVME_PORT, SMA_PORT, SPDK_PORT
 from system_tools.vm import VirtualMachine
 
@@ -121,6 +123,12 @@ class BaseTestPlatform:
         pid = self.get_pid_from_port(port)
         self.terminal.execute(f"sudo kill -9 {pid}")
 
+    @retry(stop=stop_after_delay(180), reraise=True)
+    def wait_for_running(self, image_name):
+        out = self.terminal.execute("docker ps")
+        if image_name not in out:
+            raise Exception("Container is not running")
+
 
 class StorageTargetPlatform(BaseTestPlatform):
     def create_subsystem(self):
@@ -151,6 +159,14 @@ class StorageTargetPlatform(BaseTestPlatform):
         )
         return self.terminal.execute(cmd)
 
+    def run_storage_target_container(self, storage_dir):
+        cmd = (
+            f"cd {storage_dir} && "
+            f"AS_DAEMON=true scripts/run_storage_target_container.sh"
+        )
+        self.terminal.execute(cmd)
+        self.wait_for_running("storage-target")
+
 
 class IPUStoragePlatform(BaseTestPlatform):
     def __init__(self, terminal):
@@ -171,8 +187,9 @@ class IPUStoragePlatform(BaseTestPlatform):
             f"""docker exec {cmd_sender_id} """
             f"""python -c "from scripts.disk_infrastructure import create_virtio_blk; """
             f"""print(create_virtio_blk"""
-            f"""('{self.terminal.config.ip_address}', '{volume_id}', '{physical_id}', '0', '{NQN}', """
-            f"""'{self.terminal.config.ip_address}', '{NVME_PORT}', {SMA_PORT}))" """
+            f"""('{self.terminal.config.ip_address}', '{SMA_PORT}', '{self.terminal.config.ip_address}', 50051, """
+            f"""'{volume_id}', '{physical_id}', '0', '{NQN}', """
+            f"""'{self.terminal.config.ip_address}', '{NVME_PORT}'))" """
         )
         return self.terminal.execute(cmd)
 
@@ -186,18 +203,40 @@ class IPUStoragePlatform(BaseTestPlatform):
             f"""docker exec {cmd_sender_id} """
             f"""python -c "from scripts.disk_infrastructure import delete_sma_device; """
             f"""print(delete_sma_device"""
-            f"""('{self.terminal.config.ip_address}', '{device_handle}', {SMA_PORT}))" """
+            f"""('{self.terminal.config.ip_address}', '{SMA_PORT}', '{self.terminal.config.ip_address}', 50051, '{device_handle}'))" """
         )
         return self.terminal.execute(cmd)
 
     def get_number_of_virtio_blk_devices(self):
         return self.vm.get_number_of_virtio_blk_devices()
 
+    def run_cmd_sender(self, storage_dir):
+        cmd = f"cd {storage_dir} && " f"AS_DAEMON=true " f"scripts/run_cmd_sender.sh"
+        self.terminal.execute(cmd)
+        self.wait_for_running("cmd-sender")
+
+    def run_ipu_storage_container(self, storage_dir, shared_dir):
+        cmd = (
+            f"cd {storage_dir} && "
+            f"AS_DAEMON=true SHARED_VOLUME={shared_dir} "
+            f"scripts/run_ipu_storage_container.sh"
+        )
+        self.terminal.execute(cmd)
+        self.wait_for_running("ipu-storage")
+
 
 class HostTargetPlatform(BaseTestPlatform):
     # TODO add implementation
     def run_fio(self):
         return "FioOutput"
+
+    def run_host_target_container(self, storage_dir):
+        cmd = (
+            f"cd {storage_dir} && "
+            f"AS_DAEMON=true scripts/run_host_target_container.sh"
+        )
+        self.terminal.execute(cmd)
+        self.wait_for_running("host-target")
 
 
 class Docker:
@@ -209,3 +248,10 @@ class Docker:
             f'sudo docker ps | grep "{docker_image_name}"'
         )
         return [line.split()[0] for line in out]
+
+    # TODO: add tracking running containers while testing and kill only relevant ones
+    def delete_all_containers(self):
+        """Delete all containers even currently running"""
+        out = self.terminal.execute("docker ps -aq")
+        if out:
+            self.terminal.execute("docker container rm -fv $(docker ps -aq)")

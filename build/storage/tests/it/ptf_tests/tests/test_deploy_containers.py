@@ -5,20 +5,18 @@
 import os
 
 from ptf.base_tests import BaseTest
-from test_connection import BaseTerminalMixin
-
 from system_tools.const import STORAGE_DIR_PATH
-from tests.steps.initial import (
-    CloneIPDKRepository,
-    RunCMDSenderContainer,
-    RunHostTargetContainer,
-    RunIPUStorageContainer,
-    RunStorageTargetContainer,
-)
+
+from base import CreateAllTerminalsMixin, DeleteAllContainersMixin, EmptyMixin
+from tests.steps.initial import (CloneIPDKRepository, RunCMDSenderContainer,
+                                 RunHostTargetContainer,
+                                 RunIPUStorageContainer,
+                                 RunStorageTargetContainer)
 
 
-class TestTestPlatforms(BaseTerminalMixin, BaseTest):
+class TestTestPlatforms(CreateAllTerminalsMixin, EmptyMixin, BaseTest):
     def runTest(self):
+        # todo set only one time in first time
         self.storage_target_terminal.platform.set_system_setup()
         self.ipu_storage_terminal.platform.set_system_setup()
         self.host_target_terminal.platform.set_system_setup()
@@ -28,13 +26,9 @@ class TestTestPlatforms(BaseTerminalMixin, BaseTest):
         self.host_target_terminal.platform.check_system_setup()
 
 
-class TestDeployContainers(BaseTerminalMixin, BaseTest):
-    def setUp(self):
-        super().setUp()
-        self.storage_target_terminal.delete_all_containers()
-        self.ipu_storage_terminal.delete_all_containers()
-        self.host_target_terminal.delete_all_containers()
-
+class TestDeployContainers(
+    DeleteAllContainersMixin, CreateAllTerminalsMixin, EmptyMixin, BaseTest
+):
     def runTest(self):
         clone_step = CloneIPDKRepository(
             self.storage_target_terminal,

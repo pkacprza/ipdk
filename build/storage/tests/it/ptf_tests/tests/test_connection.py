@@ -4,24 +4,10 @@
 
 from ptf.base_tests import BaseTest
 
-from system_tools.ssh_terminal import (
-    HostTargetTerminal,
-    IPUStorageTerminal,
-    StorageTargetTerminal,
-)
+from base import CreateAllTerminalsMixin, EmptyMixin
 
 
-class BaseTerminalMixin:
-    def setUp(self):
-        self.storage_target_terminal = StorageTargetTerminal()
-        self.ipu_storage_terminal = IPUStorageTerminal()
-        self.host_target_terminal = HostTargetTerminal()
-
-    def tearDown(self):
-        pass
-
-
-class TestTerminalConnect(BaseTerminalMixin, BaseTest):
+class TestTerminalConnect(CreateAllTerminalsMixin, EmptyMixin, BaseTest):
     def runTest(self):
         self.assertEqual(
             self.storage_target_terminal.execute("whoami"),
@@ -37,7 +23,9 @@ class TestTerminalConnect(BaseTerminalMixin, BaseTest):
         )
 
 
-class TestTerminalConnectHasRootPrivilegnes(BaseTerminalMixin, BaseTest):
+class TestTerminalConnectHasRootPrivilegnes(
+    CreateAllTerminalsMixin, EmptyMixin, BaseTest
+):
     def runTest(self):
         self.assertEqual(
             self.storage_target_terminal.execute("sudo whoami"),

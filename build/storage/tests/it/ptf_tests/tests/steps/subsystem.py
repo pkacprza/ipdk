@@ -2,9 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-from system_tools.ssh_terminal import CommandException
-from tests.steps.base import TestStep
 from tenacity import retry, stop_after_delay
+from tests.steps.base import TestStep
 
 
 class CreateAndExposeSubsystemOverTCPStep(TestStep):

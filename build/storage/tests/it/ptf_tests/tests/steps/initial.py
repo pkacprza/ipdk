@@ -48,11 +48,7 @@ class RunStorageTargetContainer(TestStep):
         self.storage_dir = storage_dir
 
     def _step(self):
-        cmd = (
-            f"cd {self.storage_dir} && "
-            f"AS_DAEMON=true scripts/run_storage_target_container.sh"
-        )
-        self.terminal.execute(cmd)
+        self.terminal.platform.run_storage_target_container(self.storage_dir)
 
     def _assertion_after_step(self):
         out = self.terminal.execute("docker ps")
@@ -75,12 +71,9 @@ class RunIPUStorageContainer(TestStep):
         self.terminal.client.exec_command(f"mkdir -p {self.shared_dir}")
 
     def _step(self):
-        cmd = (
-            f"cd {self.storage_dir} && "
-            f"AS_DAEMON=true SHARED_VOLUME={self.shared_dir} "
-            f"scripts/run_ipu_storage_container.sh"
+        self.terminal.platform.run_ipu_storage_container(
+            self.storage_dir, self.shared_dir
         )
-        self.terminal.execute(cmd)
 
     def _assertion_after_step(self):
         out = self.terminal.execute("docker ps")
@@ -95,15 +88,11 @@ class RunHostTargetContainer(TestStep):
         self.storage_dir = storage_dir
 
     def _step(self):
-        cmd = (
-            f"cd {self.storage_dir} && "
-            f"AS_DAEMON=true scripts/run_host_target_container.sh"
-        )
-        self.terminal.execute(cmd)
+        self.terminal.platform.run_host_target_container(self.storage_dir)
 
     def _assertion_after_step(self):
         # it's ok but container stops after few seconds
-        out = self.terminal.execute("docker ps")
+        out = self.terminal.execute("docker ps -a")
         assert "host-target" in out
 
 
@@ -118,12 +107,7 @@ class RunCMDSenderContainer(TestStep):
         self.storage_dir = storage_dir
 
     def _step(self):
-        cmd = (
-            f"cd {self.storage_dir} && "
-            f"AS_DAEMON=true "
-            f"scripts/run_cmd_sender.sh"
-        )
-        self.terminal.execute(cmd)
+        self.terminal.platform.run_cmd_sender(self.storage_dir)
 
     def _assertion_after_step(self):
         out = self.terminal.lines_execute("docker ps")
