@@ -2,9 +2,11 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-from tenacity import retry, stop_after_delay
-
+from system_tools.config import (HostTargetConfig, IPUStorageConfig,
+                                 StorageTargetConfig)
 from system_tools.const import NQN, NVME_PORT, SMA_PORT, SPDK_PORT
+from system_tools.docker import Docker
+from system_tools.ssh_terminal import SSHTerminal
 from system_tools.vm import VirtualMachine
 
 
@@ -15,6 +17,7 @@ class BaseTestPlatform:
         self.terminal = terminal
         self.pms = "dnf" if self._is_dnf() else "apt-get" if self._is_apt() else None
         self.system = self._os_system()
+        self.docker = Docker(terminal)
 
     def _os_system(self) -> str:
         return self.terminal.execute("sudo cat /etc/os-release | grep ^ID=")[3:]
@@ -123,20 +126,16 @@ class BaseTestPlatform:
         pid = self.get_pid_from_port(port)
         self.terminal.execute(f"sudo kill -9 {pid}")
 
-    @retry(stop=stop_after_delay(180), reraise=True)
-    def wait_for_running(self, image_name):
-        out = self.terminal.execute("docker ps")
-        if image_name not in out:
-            raise Exception("Container is not running")
-
 
 class StorageTargetPlatform(BaseTestPlatform):
+    def __init__(self):
+        terminal = SSHTerminal(StorageTargetConfig())
+        super().__init__(terminal)
+
     def create_subsystem(self):
-        cmd_sender_id = (
-            self.terminal.docker.get_docker_containers_id_from_docker_image_name(
-                "cmd-sender"
-            )[0]
-        )
+        cmd_sender_id = self.docker.get_docker_containers_id_from_docker_image_name(
+            "cmd-sender"
+        )[0]
         self.terminal.execute(
             f"""docker exec {cmd_sender_id} """
             f"""python -c "from scripts.disk_infrastructure import create_and_expose_subsystem_over_tcp; """
@@ -146,11 +145,9 @@ class StorageTargetPlatform(BaseTestPlatform):
 
     def create_ramdrive(self, name):
         """Create ramdrive and attach as ns to subsystem"""
-        cmd_sender_id = (
-            self.terminal.docker.get_docker_containers_id_from_docker_image_name(
-                "cmd-sender"
-            )[0]
-        )
+        cmd_sender_id = self.docker.get_docker_containers_id_from_docker_image_name(
+            "cmd-sender"
+        )[0]
         cmd = (
             f"""docker exec {cmd_sender_id} """
             f"""python -c 'from scripts.disk_infrastructure import create_ramdrive_and_attach_as_ns_to_subsystem; """
@@ -159,30 +156,27 @@ class StorageTargetPlatform(BaseTestPlatform):
         )
         return self.terminal.execute(cmd)
 
-    def run_storage_target_container(self, storage_dir):
+    def run_storage_target_container(self):
         cmd = (
-            f"cd {storage_dir} && "
+            f"cd {self.terminal.config.storage_dir} && "
             f"AS_DAEMON=true scripts/run_storage_target_container.sh"
         )
         self.terminal.execute(cmd)
-        self.wait_for_running("storage-target")
+        self.docker.wait_for_running("storage-target")
 
 
 class IPUStoragePlatform(BaseTestPlatform):
-    def __init__(self, terminal):
+    def __init__(self):
+        terminal = SSHTerminal(IPUStorageConfig())
         super().__init__(terminal)
-        # if vm is not running you have to do it
-        self.vm = VirtualMachine(terminal)
 
     def create_virtio_blk_device(self, volume_id, physical_id):
         """
         :return: device handle
         """
-        cmd_sender_id = (
-            self.terminal.docker.get_docker_containers_id_from_docker_image_name(
-                "cmd-sender"
-            )[0]
-        )
+        cmd_sender_id = self.docker.get_docker_containers_id_from_docker_image_name(
+            "cmd-sender"
+        )[0]
         cmd = (
             f"""docker exec {cmd_sender_id} """
             f"""python -c "from scripts.disk_infrastructure import create_virtio_blk; """
@@ -194,11 +188,9 @@ class IPUStoragePlatform(BaseTestPlatform):
         return self.terminal.execute(cmd)
 
     def delete_virtio_blk_device(self, device_handle):
-        cmd_sender_id = (
-            self.terminal.docker.get_docker_containers_id_from_docker_image_name(
-                "cmd-sender"
-            )[0]
-        )
+        cmd_sender_id = self.docker.get_docker_containers_id_from_docker_image_name(
+            "cmd-sender"
+        )[0]
         cmd = (
             f"""docker exec {cmd_sender_id} """
             f"""python -c "from scripts.disk_infrastructure import delete_sma_device; """
@@ -207,51 +199,40 @@ class IPUStoragePlatform(BaseTestPlatform):
         )
         return self.terminal.execute(cmd)
 
-    def get_number_of_virtio_blk_devices(self):
-        return self.vm.get_number_of_virtio_blk_devices()
-
-    def run_cmd_sender(self, storage_dir):
-        cmd = f"cd {storage_dir} && " f"AS_DAEMON=true " f"scripts/run_cmd_sender.sh"
-        self.terminal.execute(cmd)
-        self.wait_for_running("cmd-sender")
-
-    def run_ipu_storage_container(self, storage_dir, shared_dir):
+    def run_cmd_sender(self):
         cmd = (
-            f"cd {storage_dir} && "
+            f"cd {self.terminal.config.storage_dir} && "
+            f"AS_DAEMON=true "
+            f"scripts/run_cmd_sender.sh"
+        )
+        self.terminal.execute(cmd)
+        self.docker.wait_for_running("cmd-sender")
+
+    def run_ipu_storage_container(self, shared_dir):
+        cmd = (
+            f"cd {self.terminal.config.storage_dir} && "
             f"AS_DAEMON=true SHARED_VOLUME={shared_dir} "
             f"scripts/run_ipu_storage_container.sh"
         )
         self.terminal.execute(cmd)
-        self.wait_for_running("ipu-storage")
+        self.docker.wait_for_running("ipu-storage")
 
 
 class HostTargetPlatform(BaseTestPlatform):
+    def __init__(self):
+        terminal = SSHTerminal(HostTargetConfig())
+        super().__init__(terminal)
+        # if vm is not running you have to do it
+        self.vm = VirtualMachine(self)
+
     # TODO add implementation
     def run_fio(self):
         return "FioOutput"
 
-    def run_host_target_container(self, storage_dir):
+    def run_host_target_container(self):
         cmd = (
-            f"cd {storage_dir} && "
+            f"cd {self.terminal.config.storage_dir} && "
             f"AS_DAEMON=true scripts/run_host_target_container.sh"
         )
         self.terminal.execute(cmd)
-        self.wait_for_running("host-target")
-
-
-class Docker:
-    def __init__(self, terminal):
-        self.terminal = terminal
-
-    def get_docker_containers_id_from_docker_image_name(self, docker_image_name):
-        out = self.terminal.lines_execute(
-            f'sudo docker ps | grep "{docker_image_name}"'
-        )
-        return [line.split()[0] for line in out]
-
-    # TODO: add tracking running containers while testing and kill only relevant ones
-    def delete_all_containers(self):
-        """Delete all containers even currently running"""
-        out = self.terminal.execute("docker ps -aq")
-        if out:
-            self.terminal.execute("docker container rm -fv $(docker ps -aq)")
+        self.docker.wait_for_running("host-target")

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-from system_tools.ssh_terminal import SSHTerminal
+from system_tools.test_platform import BaseTestPlatform
 
 
 class TestStep:
@@ -10,9 +10,10 @@ class TestStep:
     It's abstract class
     """
 
-    def __init__(self, terminal: SSHTerminal, is_teardown: bool = False) -> None:
-        self.terminal = terminal
+    def __init__(self, platform: BaseTestPlatform, is_teardown: bool = False) -> None:
+        self.platform = platform
         self.is_teardown = is_teardown
+        self.result = {}
 
     def _prepare(self):
         pass
@@ -46,3 +47,4 @@ class TestStep:
         self._assertion_after_step()
         if self.is_teardown:
             self._teardown()
+        return self.result
