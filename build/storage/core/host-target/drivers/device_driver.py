@@ -3,9 +3,13 @@
 #
 import os
 from typing import Callable
-from pci_devices import PciAddress
-from helpers import WriteAndRestoreFileContent
-from device_exerciser_if import DeviceExerciserError
+
+from pci import PciAddress
+from helpers.file_helpers import WriteAndRestoreFileContent
+
+
+class DriverError(RuntimeError):
+    pass
 
 
 class DeviceDriver:
@@ -27,7 +31,7 @@ class DeviceDriver:
         try:
             if os.path.exists(f"/sys/bus/pci/drivers/{self._driver_name}/{pci_addr}"):
                 return True
-        except DeviceExerciserError:
+        except DriverError:
             pass
 
         return False
@@ -43,7 +47,7 @@ class DeviceDriver:
             if self.is_bound(pci_addr):
                 return
             self._wait(1)
-        raise DeviceExerciserError(
+        raise DriverError(
             f"Device '{pci_addr}' cannot be bound to '{self._driver_name}' driver"
         )
 
@@ -55,7 +59,7 @@ class DeviceDriver:
             if not self.is_bound(pci_addr):
                 return
             self._wait(1)
-        raise DeviceExerciserError(
+        raise DriverError(
             f"Device '{pci_addr}' cannot be unbound from '{self._driver_name}' driver"
         )
 
