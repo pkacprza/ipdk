@@ -4,12 +4,10 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-from volumes import *
-from pci  import PciAddress, InvalidPciAddress
-from volumes import VolumeId, VolumeError
+from pci_devices import *
+from volume import VolumeId, VolumeError
 from pyfakefs.fake_filesystem_unittest import TestCase
 
-import os
 import uuid
 
 
@@ -118,7 +116,7 @@ class VirtioBlkPciDeviceTests(TestCase):
     def test_no_block_device_exists(self):
         path_to_device = "/sys/bus/pci/devices/0000:00:04.0/virtio0/block"
         self.fs.create_dir(path_to_device)
-        with self.assertRaises(FailedVolumeDetection) as ex:
+        with self.assertRaises(FailedPciDeviceDetection) as ex:
             get_virtio_blk_volume(PciAddress("0000:00:00.0"))
 
     def test_multiple_block_devices_in_virtio_dir(self):
@@ -128,19 +126,19 @@ class VirtioBlkPciDeviceTests(TestCase):
         path = "/sys/bus/pci/devices/0000:00:04.0/virtio0/block/vdb"
         self.fs.create_dir(path)
         self.fs.create_file("/dev/vdb")
-        with self.assertRaises(FailedVolumeDetection) as ex:
+        with self.assertRaises(FailedPciDeviceDetection) as ex:
             get_virtio_blk_volume(PciAddress("0000:00:04.0"))
 
     def test_no_block_devices(self):
         path = "/sys/bus/pci/devices/0000:00:04.0"
         self.fs.create_dir(path)
-        with self.assertRaises(FailedVolumeDetection) as ex:
+        with self.assertRaises(FailedPciDeviceDetection) as ex:
             get_virtio_blk_volume(PciAddress("0000:00:04.0"))
 
     def test_no_device_in_virtio_block(self):
         path = "/sys/bus/pci/devices/0000:00:04.0/virtio0/block"
         self.fs.create_dir(path)
-        with self.assertRaises(FailedVolumeDetection) as ex:
+        with self.assertRaises(FailedPciDeviceDetection) as ex:
             get_virtio_blk_volume(PciAddress("0000:00:04.0"))
 
     def test_multiple_block_devices_under_different_virtio_dirs(self):
@@ -150,7 +148,7 @@ class VirtioBlkPciDeviceTests(TestCase):
         path = "/sys/bus/pci/devices/0000:00:04.0/virtio1/block/vdb"
         self.fs.create_dir(path)
         self.fs.create_file("/dev/vdb")
-        with self.assertRaises(FailedVolumeDetection) as ex:
+        with self.assertRaises(FailedPciDeviceDetection) as ex:
             get_virtio_blk_volume(PciAddress("0000:00:04.0"))
 
     def test_no_directory_under_domain_bus_directory_in_sysfs(self):
@@ -158,11 +156,11 @@ class VirtioBlkPciDeviceTests(TestCase):
         self.fs.create_dir(path)
         self.fs.create_file("/dev/vda")
         non_existing_pci_address = PciAddress("0000:00:01.0")
-        with self.assertRaises(FailedVolumeDetection) as ex:
+        with self.assertRaises(FailedPciDeviceDetection) as ex:
             get_virtio_blk_volume(non_existing_pci_address)
 
     def test_pci_does_not_exist_in_sysfs(self):
-        with self.assertRaises(FailedVolumeDetection) as ex:
+        with self.assertRaises(FailedPciDeviceDetection) as ex:
             get_virtio_blk_volume(PciAddress("0000:00:04.0"))
 
     def test_device_does_not_exist_in_dev(self):
@@ -177,7 +175,7 @@ class VirtioBlkPciDeviceTests(TestCase):
         self.fs.create_dir(path)
         self.fs.create_file("/dev/vda")
 
-        with self.assertRaises(FailedVolumeDetection) as ex:
+        with self.assertRaises(FailedPciDeviceDetection) as ex:
             get_virtio_blk_volume(
                 PciAddress("0000:00:04.0"),
                 {VolumeId(str(uuid.uuid1()))},

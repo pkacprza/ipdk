@@ -7,7 +7,7 @@
 import unittest
 import os
 
-from helpers.fio_args import *
+from fio_args import *
 
 
 class FioArgsTests(unittest.TestCase):

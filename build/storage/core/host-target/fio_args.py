@@ -5,6 +5,7 @@
 import json
 import tempfile
 import typing
+from volume import Volume
 
 
 class FioArgsError(ValueError):
@@ -58,7 +59,7 @@ class FioArgs:
         except (json.JSONDecodeError, TypeError) as err:
             raise FioArgsError(str(err))
 
-    def add_volumes_to_exercise(self, volumes_to_exercise: set[str]):
+    def add_volumes_to_exercise(self, volumes_to_exercise: set[Volume]):
         if self._volume_to_exercise_option not in self._fio_args:
             self._fio_args[self._volume_to_exercise_option] = []
         self._fio_args[self._volume_to_exercise_option] = list(
