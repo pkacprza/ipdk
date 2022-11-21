@@ -54,11 +54,12 @@ class Test1HotPlug(BaseTest):
         )[0]
         self.host_target_platform.terminal.execute(
             f"""docker exec {cmd_sender_id} """
-            f'''$ echo -e $(env -i no_grpc_proxy="" grpc_cli call {self.host_target_platform.terminal.config.ip_address}:50051 \ '''
-            f'''RunFio "diskToExercise: {{ deviceHandle: '$virtio_blk0' }} \ '''
-            f'''fioArgs: '{{\"rw\":\"readwrite\", \"runtime\":5, \"numjobs\": 1, \ '''
-            f''' \"time_based\": 1, \"group_reporting\": 1 }}'") ''')
-
+            f"""echo (cookie)"""
+            # f'''$ echo -e $(env -i no_grpc_proxy="" grpc_cli call {self.host_target_platform.terminal.config.ip_address}:50051 \ '''
+            # f'''RunFio "diskToExercise: {{ deviceHandle: '$virtio_blk0' }} \ '''
+            # f'''fioArgs: '{{\"rw\":\"readwrite\", \"runtime\":5, \"numjobs\": 1, \ '''
+            # f''' \"time_based\": 1, \"group_reporting\": 1 }}'") '''
+        )
 
 
         #
