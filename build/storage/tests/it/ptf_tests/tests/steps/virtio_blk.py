@@ -83,15 +83,15 @@ class DeleteVirtioBlkStep(TestStep):
         self.vm = vm
         self.ipu_platform = ipu_platform
 
-    # def _assertions_before_step(self):
-    #     assert self.vm.get_number_of_virtio_blk_devices() == 1
-    #     # todo check if vm is running properly
-    #
-    # def _step(self):
-    #     self.ipu_platform.delete_virtio_blk_device(self.device_handle)
-    #
-    # def _assertion_after_step(self):
-    #     assert self.vm.get_number_of_virtio_blk_devices() == 0
+    def _assertions_before_step(self):
+        assert self.vm.get_number_of_virtio_blk_devices() == 1
+        # todo check if vm is running properly
+
+    def _step(self):
+        self.ipu_platform.delete_virtio_blk_device(self.device_handle)
+
+    def _assertion_after_step(self):
+        assert self.vm.get_number_of_virtio_blk_devices() == 0
 
 
 class CreateVirtioBlkAbove64Step(TestStep):

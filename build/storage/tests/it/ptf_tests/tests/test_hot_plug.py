@@ -61,10 +61,10 @@ class Test1HotPlug(BaseTest):
         # self.assertIn("err= 0", self._fio_output)
         # self.assertIn("Disk stats ", self._fio_output)
     #
-    # def tearDown(self):
-    #     self.storage_target_platform.clean()
-    #     self.host_target_platform.clean()
-    #     self.ipu_storage_platform.clean()
+    def tearDown(self):
+        self.storage_target_platform.clean()
+        self.host_target_platform.clean()
+        self.ipu_storage_platform.clean()
 
 
 # class Test64HotPlug(BaseTest):
