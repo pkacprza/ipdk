@@ -69,10 +69,17 @@ class CreateVirtioBlkStep(TestStep):
         self.result["device_handle"] = self.ipu_platform.create_virtio_blk_device(
             self.volume_id, 0
         )
+        _fio_command = (
+            f'''$ echo -e $(env -i no_grpc_proxy="" grpc_cli call {self.host_target_platform.terminal.config.ip_address}:50051 \ '''
+            f'''RunFio "diskToExercise: {{ deviceHandle: '$virtio_blk0' }} \ '''
+            f'''fioArgs: '{{\"rw\":\"readwrite\", \"runtime\":5, \"numjobs\": 1, \ '''
+            f''' \"time_based\": 1, \"group_reporting\": 1 }}'") ''')
+        self._fio_output = self.storage_target_platform.terminal.execute(_fio_command)
 
     def _assertion_after_step(self):
         assert self.vm.get_number_of_virtio_blk_devices() == 1
-
+        self.assertIn("err= 0", self._fio_output)
+        self.assertIn("Disk stats ", self._fio_output)
 
 class DeleteVirtioBlkStep(TestStep):
     def __init__(
@@ -83,15 +90,15 @@ class DeleteVirtioBlkStep(TestStep):
         self.vm = vm
         self.ipu_platform = ipu_platform
 
-    def _assertions_before_step(self):
-        assert self.vm.get_number_of_virtio_blk_devices() == 1
-        # todo check if vm is running properly
-
-    def _step(self):
-        self.ipu_platform.delete_virtio_blk_device(self.device_handle)
-
-    def _assertion_after_step(self):
-        assert self.vm.get_number_of_virtio_blk_devices() == 0
+    # def _assertions_before_step(self):
+    #     assert self.vm.get_number_of_virtio_blk_devices() == 1
+    #     # todo check if vm is running properly
+    #
+    # def _step(self):
+    #     self.ipu_platform.delete_virtio_blk_device(self.device_handle)
+    #
+    # def _assertion_after_step(self):
+    #     assert self.vm.get_number_of_virtio_blk_devices() == 0
 
 
 class CreateVirtioBlkAbove64Step(TestStep):
