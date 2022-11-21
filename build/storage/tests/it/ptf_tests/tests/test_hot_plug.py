@@ -5,7 +5,7 @@
 from ptf.base_tests import BaseTest
 from system_tools.test_platform import (HostTargetPlatform, IPUStoragePlatform,
                                         StorageTargetPlatform)
-
+from system_tools.docker import Docker
 from tests.steps.ramdrive import (
     CreateRamdriveAndAttachAsNsToSubsystem64Step,
     CreateRamdriveAndAttachAsNsToSubsystemAbove64Step,
@@ -22,7 +22,7 @@ class Test1HotPlug(BaseTest):
         self.storage_target_platform = StorageTargetPlatform()
         self.ipu_storage_platform = IPUStoragePlatform()
         self.host_target_platform = HostTargetPlatform()
-        self.docker = self.storage_target_platform.docker
+        self.docker = Docker()
 
     def runTest(self):
         CreateAndExposeSubsystemOverTCPStep(self.storage_target_platform).run()
@@ -45,7 +45,6 @@ class Test1HotPlug(BaseTest):
             self.ipu_storage_platform,
             device_handles,
         ).run()
-
         cmd_sender_id = self.docker.get_docker_containers_id_from_docker_image_name(
             "cmd-sender"
         )[0]
