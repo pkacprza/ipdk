@@ -22,7 +22,7 @@ class Test1HotPlug(BaseTest):
         self.storage_target_platform = StorageTargetPlatform()
         self.ipu_storage_platform = IPUStoragePlatform()
         self.host_target_platform = HostTargetPlatform()
-        self.docker = Docker()
+        self.docker = Docker(self.storage_target_platform.terminal)
 
     def runTest(self):
         CreateAndExposeSubsystemOverTCPStep(self.storage_target_platform).run()
