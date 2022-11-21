@@ -43,18 +43,18 @@ class Test1HotPlug(BaseTest):
             .run()
             .get("device_handles")
         )
-        DeleteVirtioBlkStep(
-            self.host_target_platform,
-            self.ipu_storage_platform,
-            device_handles,
-            vm,
-        ).run()
+        # DeleteVirtioBlkStep(
+        #     self.host_target_platform,
+        #     self.ipu_storage_platform,
+        #     device_handles,
+        #     vm,
+        # ).run()
         cmd_sender_id = self.docker.get_docker_containers_id_from_docker_image_name(
             "cmd-sender"
         )[0]
         self.host_target_platform.terminal.execute(
             f"""docker exec {cmd_sender_id} """
-            f"""echo (cookie)"""
+            # f"""echo (cookie)"""
             # f'''$ echo -e $(env -i no_grpc_proxy="" grpc_cli call {self.host_target_platform.terminal.config.ip_address}:50051 \ '''
             # f'''RunFio "diskToExercise: {{ deviceHandle: '$virtio_blk0' }} \ '''
             # f'''fioArgs: '{{\"rw\":\"readwrite\", \"runtime\":5, \"numjobs\": 1, \ '''
