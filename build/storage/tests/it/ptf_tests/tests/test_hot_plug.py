@@ -3,6 +3,8 @@
 #
 
 from ptf.base_tests import BaseTest
+
+from system_tools import vm
 from system_tools.test_platform import (HostTargetPlatform, IPUStoragePlatform,
                                         StorageTargetPlatform)
 from system_tools.docker import Docker
@@ -36,6 +38,7 @@ class Test1HotPlug(BaseTest):
                 self.host_target_platform,
                 self.ipu_storage_platform,
                 volume_ids,
+                vm,
             )
             .run()
             .get("device_handles")
@@ -44,6 +47,7 @@ class Test1HotPlug(BaseTest):
             self.host_target_platform,
             self.ipu_storage_platform,
             device_handles,
+            vm,
         ).run()
         cmd_sender_id = self.docker.get_docker_containers_id_from_docker_image_name(
             "cmd-sender"
@@ -60,11 +64,11 @@ class Test1HotPlug(BaseTest):
         #
         # self.assertIn("err= 0", self._fio_output)
         # self.assertIn("Disk stats ", self._fio_output)
-    #
-    def tearDown(self):
-        self.storage_target_platform.clean()
-        self.host_target_platform.clean()
-        self.ipu_storage_platform.clean()
+    # #
+    # def tearDown(self):
+    #     self.storage_target_platform.clean()
+    #     self.host_target_platform.clean()
+    #     self.ipu_storage_platform.clean()
 
 
 # class Test64HotPlug(BaseTest):
