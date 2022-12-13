@@ -52,11 +52,14 @@ class VirtioBlkDevice(IpuStorageDevice):
         self._host_target_address_service = host_target_address_service
 
     def delete(self, cmd_sender):
-        return cmd_sender.delete_virtio_blk_device(
-            self._ipu_platform.get_ip_address(),
-            self._host_target_address_service,
-            self._device_handle,
-            self._ipu_platform.sma_port,
+        return (
+            cmd_sender.delete_virtio_blk_device(
+                self._ipu_platform.get_ip_address(),
+                self._host_target_address_service,
+                self._device_handle,
+                self._ipu_platform.sma_port,
+            )
+            == "True"
         )
 
 
@@ -267,8 +270,9 @@ class IPUStoragePlatform(BaseTestPlatform):
         )
 
     def delete_virtio_blk_devices(self, devices_handles):
-        for device_handle in devices_handles:
-            device_handle.delete(self.cmd_sender)
+        return [
+            device_handle.delete(self.cmd_sender) for device_handle in devices_handles
+        ]
 
     def clean(self):
         # TODO delete all alocated devices
