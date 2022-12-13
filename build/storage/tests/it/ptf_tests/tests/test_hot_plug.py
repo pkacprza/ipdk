@@ -63,6 +63,23 @@ class TestMinHotPlug(BaseTest):
             self.host_target_platform.get_number_of_virtio_blk_devices(), 0
         )
 
+        second_delete_responses = self.ipu_storage_platform.delete_virtio_blk_devices(
+            devices_handles
+        )
+        for response in second_delete_responses:
+            self.assertEqual(response, "False")
+
+        fake_devices_handles = self.ipu_storage_platform.create_fake_virtio_blk_devices(
+            self.host_target_platform.get_service_address(),
+            remote_nvme_storages,
+            range(len(remote_nvme_storages)),
+        )
+        fake_delete_responses = self.ipu_storage_platform.delete_virtio_blk_devices(
+            fake_devices_handles
+        )
+        for response in fake_delete_responses:
+            self.assertEqual(response, "False")
+
     def tearDown(self):
         self.ipu_storage_platform.clean()
         self.storage_target_platform.clean()

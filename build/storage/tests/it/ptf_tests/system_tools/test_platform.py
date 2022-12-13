@@ -255,6 +255,24 @@ class IPUStoragePlatform(BaseTestPlatform):
             )
         return device_handles
 
+    def create_fake_virtio_blk_devices(
+        self,
+        host_target_address_service,
+        volumes,
+        physical_ids,
+    ):
+        fake_device_handles = []
+        for volume, physical_id in zip(volumes, physical_ids):
+            fake_device_handles.append(
+                VirtioBlkDevice(
+                    f"fake_device_handle_{volume}_{physical_id}",
+                    volume,
+                    self,
+                    host_target_address_service,
+                )
+            )
+        return fake_device_handles
+
     def create_virtio_blk_devices_sequentially(
         self,
         host_target_address_service,
@@ -267,8 +285,9 @@ class IPUStoragePlatform(BaseTestPlatform):
         )
 
     def delete_virtio_blk_devices(self, devices_handles):
-        for device_handle in devices_handles:
-            device_handle.delete(self.cmd_sender)
+        return [
+            device_handle.delete(self.cmd_sender) for device_handle in devices_handles
+        ]
 
     def clean(self):
         # TODO delete all alocated devices
