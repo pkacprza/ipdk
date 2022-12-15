@@ -51,6 +51,15 @@ if ! wait_for_spdk_pid_file "$spdk_pid_file" "$wait_max_sec" ; then
     exit 1
 fi
 
+# OPI does not provide a way to create TCP transport but actively rely on it
+# create TCP transport here at the moment
+rpc.py nvmf_create_transport -t tcp
+# TODO wait when service on port is up
+# TODO make ports configurable
+/opi-spdk-bridge --port=50052 &
+# TODO wait when service on port is up
+python /opi_proxy/opi_proxy_main.py &
+
 pid=$(cat "$spdk_pid_file")
 if ! is_pid_running "$pid" ; then
     echo "Spdk is not running." >&2

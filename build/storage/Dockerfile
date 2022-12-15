@@ -92,6 +92,9 @@ ARG NO_PROXY
 # It is responsible for creation of vhost virtio-blk devices and exposing them
 # to hosts(KVM or physical ones)
 ################################################################################
+FROM ghcr.io/opiproject/opi-storage-server:main AS opi_server
+
+
 FROM spdk as ipu-storage-container
 
 ARG HTTP_PROXY
@@ -99,7 +102,22 @@ ARG HTTPS_PROXY
 ARG NO_PROXY
 
 # hadolint ignore=DL3013
-RUN dnf install -y socat && dnf clean all && pip install --no-cache-dir pyyaml
+RUN dnf install -y socat golang-bin musl-devel && dnf clean all && pip install --no-cache-dir pyyaml
+
+COPY --from=opi_server /opi-spdk-bridge /opi-spdk-bridge
+RUN dnf install -y git && dnf clean all
+RUN python -m pip install --no-cache-dir google-api-python-client \
+    protobuf==3.20.2 \
+    grpcio==1.51.1 \
+    grpcio-tools==1.48.2 \
+    grpcio-reflection==1.48.2
+RUN mkdir /opi_proxy
+RUN git clone https://github.com/opiproject/opi-api.git && \
+    cp -r ./opi-api/common/v1/gen/python/*.py /opi_proxy && \
+    cp -r ./opi-api/storage/v1alpha1/gen/python/*.py /opi_proxy && \
+    rm -rf /opi-api
+COPY core/ipu-storage-container/opi_proxy/*.py /opi_proxy
+COPY spdk/python/spdk/sma/qmp.py /opi_proxy
 
 COPY core/ipu-storage-container/init /init
 COPY --from=spdk-app /init /init_spdk
