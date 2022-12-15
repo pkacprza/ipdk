@@ -54,6 +54,7 @@ fi
 # OPI does not provide a way to create TCP transport but actively rely on it
 # create TCP transport here at the moment
 rpc.py nvmf_create_transport -t tcp
+# TODO separate opi from sma
 # TODO wait when service on port is up
 # TODO make ports configurable
 /opi-spdk-bridge --port=50052 &
