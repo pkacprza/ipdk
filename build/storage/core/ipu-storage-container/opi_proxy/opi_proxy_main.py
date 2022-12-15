@@ -147,6 +147,7 @@ class BackendNvmeTcp(backend_nvme_tcp_pb2_grpc.NVMfRemoteControllerServiceServic
 
 
 def serve():
+    proxy_ip_address = "[::]"
     proxy_port = "50053"
     opi_server_port = 50052
     opi_service_address = f"localhost:{opi_server_port}"
@@ -157,18 +158,22 @@ def serve():
         {"name": "pci.ipdk.1", "count": 32},
     ]
 
+    frontend_virtio_blk_servicer = FrontendVirtioBlk(
+        opi_service_address, qmp_address, controller_sock_dir, pci_buses
+    )
+    frontend_nvme_pcie_servicer = FrontendNvmePcie(opi_service_address)
+    backend_nvme_tcp_servicer = BackendNvmeTcp(opi_service_address)
+
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     frontend_virtio_blk_pb2_grpc.add_FrontendVirtioBlkServiceServicer_to_server(
-        FrontendVirtioBlk(
-            opi_service_address, qmp_address, controller_sock_dir, pci_buses
-        ),
+        frontend_virtio_blk_servicer,
         server,
     )
     frontend_nvme_pcie_pb2_grpc.add_FrontendNvmeServiceServicer_to_server(
-        FrontendNvmePcie(opi_service_address), server
+        frontend_nvme_pcie_servicer, server
     )
     backend_nvme_tcp_pb2_grpc.add_NVMfRemoteControllerServiceServicer_to_server(
-        BackendNvmeTcp(opi_service_address), server
+        backend_nvme_tcp_servicer, server
     )
     service_names = (
         frontend_virtio_blk_pb2.DESCRIPTOR.services_by_name[
@@ -183,7 +188,7 @@ def serve():
         reflection.SERVICE_NAME,
     )
     reflection.enable_server_reflection(service_names, server)
-    server.add_insecure_port("[::]:" + proxy_port)
+    server.add_insecure_port(proxy_ip_address + ":" + proxy_port)
     server.start()
     print("Server started, listening on " + proxy_port)
     server.wait_for_termination()
