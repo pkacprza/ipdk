@@ -5,7 +5,7 @@
 #
 
 export DEFAULT_SPDK_PORT=5260
-export DEFAULT_SMA_PORT=8080
+export DEFAULT_IPU_SERVICE_PORT=8080
 export DEFAULT_NVME_PORT=4420
 export DEFAULT_HOST_TARGET_SERVICE_PORT=50051
 export MAX_NUMBER_OF_NAMESPACES_IN_CONTROLLER=1024
@@ -103,7 +103,7 @@ from scripts import disk_infrastructure
 print(
     disk_infrastructure.create_virtio_blk(
         ipu_storage_container_ip="${1}",
-        sma_port=int("${2}"),
+        ipu_service_port=int("${2}"),
         host_target_ip="${3}",
         host_target_service_port=int("${4}"),
         volume_id="${5}",
@@ -117,14 +117,14 @@ print(
 EOF
 }
 
-function _delete_sma_device() {
+function _delete_device() {
     python3 <<- EOF
 import sys
-from scripts.disk_infrastructure import delete_sma_device
+from scripts.disk_infrastructure import delete_device
 
-if not delete_sma_device(
+if not delete_device(
     ipu_storage_container_ip="${1}",
-    sma_port=int("${2}"),
+    ipu_service_port=int("${2}"),
     host_target_ip="${3}",
     host_target_service_port=int("${4}"),
     device_handle="${5}",
@@ -134,7 +134,7 @@ EOF
 }
 
 function delete_virtio_blk() {
-    _delete_sma_device "$@"
+    _delete_device "$@"
 }
 
 function wait_until_port_on_ip_addr_open() {
@@ -159,7 +159,7 @@ from scripts import disk_infrastructure
 
 device_handle=disk_infrastructure.create_nvme_device(
     ipu_storage_container_ip="$1",
-    sma_port=int("$2"),
+    ipu_service_port=int("$2"),
     host_target_ip="$3",
     host_target_service_port=int("$4"),
     physical_id="$5",
@@ -181,7 +181,7 @@ disk_infrastructure.attach_volume(
     nqn="$4",
     traddr="$5",
     trsvcid="${6:-"$DEFAULT_NVME_PORT"}",
-    sma_port=int("${7:-"$DEFAULT_SMA_PORT"}"),
+    ipu_service_port=int("${7:-"$DEFAULT_IPU_SERVICE_PORT"}"),
     cipher=None,
     key="",
     key2="",
@@ -204,7 +204,7 @@ disk_infrastructure.attach_volume(
     key="$6",
     key2="",
     trsvcid="${7:-"$DEFAULT_NVME_PORT"}",
-    sma_port=int("${8:-"$DEFAULT_SMA_PORT"}"),
+    ipu_service_port=int("${8:-"$DEFAULT_IPU_SERVICE_PORT"}"),
 )
 EOF
 }
@@ -224,7 +224,7 @@ disk_infrastructure.attach_volume(
     key="$6",
     key2="$7",
     trsvcid="${8:-"$DEFAULT_NVME_PORT"}",
-    sma_port=int("${9:-"$DEFAULT_SMA_PORT"}"),
+    ipu_service_port=int("${9:-"$DEFAULT_IPU_SERVICE_PORT"}"),
 )
 EOF
 }
@@ -238,13 +238,13 @@ disk_infrastructure.detach_volume(
     ipu_storage_container_ip="$1",
     device_handle="$2",
     volume_id="$3",
-    sma_port=int("${4:-"$DEFAULT_SMA_PORT"}"),
+    ipu_service_port=int("${4:-"$DEFAULT_IPU_SERVICE_PORT"}"),
 )
 EOF
 }
 
 function delete_nvme_device() {
-    _delete_sma_device "$@"
+    _delete_device "$@"
 }
 
 
@@ -260,7 +260,7 @@ disk_infrastructure.attach_volume(
     nqn="$4",
     traddr="$5",
     trsvcid="${6:-"$DEFAULT_NVME_PORT"}",
-    sma_port=int("${7:-"$DEFAULT_SMA_PORT"}"),
+    ipu_service_port=int("${7:-"$DEFAULT_IPU_SERVICE_PORT"}"),
 )
 EOF
 }
@@ -276,13 +276,13 @@ disk_infrastructure.detach_volume(
     ipu_storage_container_ip="$1",
     device_handle="$2",
     volume_id="$3",
-    sma_port=int("${4:-"$DEFAULT_SMA_PORT"}"),
+    ipu_service_port=int("${4:-"$DEFAULT_IPU_SERVICE_PORT"}"),
 )
 EOF
 }
 
 function delete_nvme_device() {
-    _delete_sma_device "$@"
+    _delete_device "$@"
 }
 
 function verify_expected_number_of_nvme_devices() {
@@ -316,7 +316,7 @@ function get_virtio_blk_qos_capabilities() {
 from scripts import disk_infrastructure
 capabilities = disk_infrastructure.get_virtio_blk_qos_capabilities(
     ipu_storage_container_ip="$1",
-    sma_port=int("$2"),
+    ipu_service_port=int("$2"),
 )
 print(str(capabilities))
 EOF
@@ -327,7 +327,7 @@ function get_nvme_qos_capabilities() {
 from scripts import disk_infrastructure
 capabilities = disk_infrastructure.get_nvme_qos_capabilities(
     ipu_storage_container_ip="$1",
-    sma_port=int("$2"),
+    ipu_service_port=int("$2"),
 )
 print(str(capabilities))
 EOF
@@ -340,7 +340,7 @@ function set_max_qos_limits() {
 from scripts import disk_infrastructure
 response=disk_infrastructure.set_qos_limits(
     ipu_storage_container_ip="$1",
-    sma_port=int("$2"),
+    ipu_service_port=int("$2"),
     device_handle="$3",
     volume_id="$4",
     max_limits={

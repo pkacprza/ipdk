@@ -179,7 +179,7 @@ def key2base64(key: str) -> str:
 
 def _create_virtio_blk_over_sma(
     ipu_storage_container_ip: str,
-    sma_port: int,
+    ipu_service_port: int,
     host_target_ip: str,
     host_target_service_port: int,
     volume_id: str,
@@ -209,7 +209,7 @@ def _create_virtio_blk_over_sma(
     response = send_sma_request(
         request=request,
         addr=ipu_storage_container_ip,
-        port=sma_port,
+        port=ipu_service_port,
     )
     device_handle = response["handle"]
 
@@ -224,8 +224,8 @@ def _create_virtio_blk_over_sma(
         ):
             return device_handle
         else:
-            _send_delete_sma_device_request(
-                ipu_storage_container_ip, sma_port, device_handle
+            _send_delete_device_request(
+                ipu_storage_container_ip, ipu_service_port, device_handle
             )
 
     return ""
@@ -233,7 +233,7 @@ def _create_virtio_blk_over_sma(
 
 def _create_virtio_blk_over_opi(
     ipu_storage_container_ip: str,
-    sma_port: int,
+    ipu_service_port: int,
     host_target_ip: str,
     host_target_service_port: int,
     volume_id: str,
@@ -256,7 +256,7 @@ def _create_virtio_blk_over_opi(
         }
     }
     os.system(
-        f"grpc_cli --json_input --json_output call {ipu_storage_container_ip}:{sma_port} \
+        f"grpc_cli --json_input --json_output call {ipu_storage_container_ip}:{ipu_service_port} \
             opi_api.storage.v1.NVMfRemoteControllerService.CreateNVMfRemoteController '{json.dumps(params)}' &>/dev/null"
     )
     params = {
@@ -271,7 +271,7 @@ def _create_virtio_blk_over_opi(
     }
     if (
         os.system(
-            f"grpc_cli --json_input --json_output call {ipu_storage_container_ip}:{sma_port} \
+            f"grpc_cli --json_input --json_output call {ipu_storage_container_ip}:{ipu_service_port} \
             opi_api.storage.v1.FrontendVirtioBlkService.CreateVirtioBlk '{json.dumps(params)}' &> /dev/null"
         )
         == 0
@@ -282,7 +282,7 @@ def _create_virtio_blk_over_opi(
 
 def create_virtio_blk(
     ipu_storage_container_ip: str,
-    sma_port: int,
+    ipu_service_port: int,
     host_target_ip: str,
     host_target_service_port: int,
     volume_id: str,
@@ -295,7 +295,7 @@ def create_virtio_blk(
     if os.getenv("USE_OPI") == "true":
         return _create_virtio_blk_over_opi(
             ipu_storage_container_ip,
-            sma_port,
+            ipu_service_port,
             host_target_ip,
             host_target_service_port,
             volume_id,
@@ -308,7 +308,7 @@ def create_virtio_blk(
     else:
         return _create_virtio_blk_over_sma(
             ipu_storage_container_ip,
-            sma_port,
+            ipu_service_port,
             host_target_ip,
             host_target_service_port,
             volume_id,
@@ -320,14 +320,16 @@ def create_virtio_blk(
         )
 
 
-def _send_delete_sma_device_request(ipu_storage_container_ip, sma_port, device_handle):
+def _send_delete_device_request(
+    ipu_storage_container_ip, ipu_service_port, device_handle
+):
     request = {"method": "DeleteDevice", "params": {"handle": device_handle}}
-    send_sma_request(request, ipu_storage_container_ip, sma_port)
+    send_sma_request(request, ipu_storage_container_ip, ipu_service_port)
 
 
-def _delete_sma_device_over_sma(
+def _delete_device_over_sma(
     ipu_storage_container_ip: str,
-    sma_port: int,
+    ipu_service_port: int,
     host_target_ip: str,
     host_target_service_port: int,
     device_handle: str,
@@ -341,8 +343,8 @@ def _delete_sma_device_over_sma(
             )
             == 0
         ):
-            _send_delete_sma_device_request(
-                ipu_storage_container_ip, sma_port, device_handle
+            _send_delete_device_request(
+                ipu_storage_container_ip, ipu_service_port, device_handle
             )
             return True
     except Exception as ex:
@@ -351,40 +353,40 @@ def _delete_sma_device_over_sma(
     return False
 
 
-def _delete_sma_device_over_opi(
+def _delete_device_over_opi(
     ipu_storage_container_ip: str,
-    sma_port: int,
+    ipu_service_port: int,
     host_target_ip: str,
     host_target_service_port: int,
     device_handle: str,
 ) -> bool:
     params = {"name": str(device_handle)}
     return os.system(
-        f"grpc_cli --json_input --json_output call {ipu_storage_container_ip}:{sma_port} \
+        f"grpc_cli --json_input --json_output call {ipu_storage_container_ip}:{ipu_service_port} \
             opi_api.storage.v1.FrontendVirtioBlkService.DeleteVirtioBlk '{json.dumps(params)}' &> /dev/null"
     )
 
 
-def delete_sma_device(
+def delete_device(
     ipu_storage_container_ip: str,
-    sma_port: int,
+    ipu_service_port: int,
     host_target_ip: str,
     host_target_service_port: int,
     device_handle: str,
 ) -> bool:
 
     if os.getenv("USE_OPI") == "true":
-        _delete_sma_device_over_opi(
+        _delete_device_over_opi(
             ipu_storage_container_ip,
-            sma_port,
+            ipu_service_port,
             host_target_ip,
             host_target_service_port,
             device_handle,
         )
     else:
-        _delete_sma_device_over_sma(
+        _delete_device_over_sma(
             ipu_storage_container_ip,
-            sma_port,
+            ipu_service_port,
             host_target_ip,
             host_target_service_port,
             device_handle,
@@ -397,7 +399,7 @@ def wait_for_volume_in_os(timeout: float = 2.0) -> None:
 
 def create_nvme_device(
     ipu_storage_container_ip: str,
-    sma_port: int,
+    ipu_service_port: int,
     host_target_ip: str,
     host_target_service_port: int,
     physical_id: str,
@@ -412,7 +414,7 @@ def create_nvme_device(
     response = send_sma_request(
         request=request,
         addr=ipu_storage_container_ip,
-        port=sma_port,
+        port=ipu_service_port,
     )
     device_handle = response["handle"]
     if device_handle:
@@ -426,8 +428,8 @@ def create_nvme_device(
         ):
             return device_handle
         else:
-            _send_delete_sma_device_request(
-                ipu_storage_container_ip, sma_port, device_handle
+            _send_delete_device_request(
+                ipu_storage_container_ip, ipu_service_port, device_handle
             )
 
     return ""
@@ -440,7 +442,7 @@ class VolumeCipher(Enum):
 
 def attach_volume(
     ipu_storage_container_ip: str,
-    sma_port: int,
+    ipu_service_port: int,
     device_handle: str,
     volume_id: str,
     nqn: str,
@@ -474,12 +476,17 @@ def attach_volume(
             "key": key2base64(key),
             "key2": key2base64(key2),
         }
-    send_sma_request(request=request, addr=ipu_storage_container_ip, port=sma_port)
+    send_sma_request(
+        request=request, addr=ipu_storage_container_ip, port=ipu_service_port
+    )
     wait_for_volume_in_os()
 
 
 def detach_volume(
-    ipu_storage_container_ip: str, sma_port: int, device_handle: str, volume_id: str
+    ipu_storage_container_ip: str,
+    ipu_service_port: int,
+    device_handle: str,
+    volume_id: str,
 ) -> None:
     request = {
         "method": "DetachVolume",
@@ -488,7 +495,7 @@ def detach_volume(
     send_sma_request(
         request=request,
         addr=ipu_storage_container_ip,
-        port=sma_port,
+        port=ipu_service_port,
     )
 
 
@@ -546,33 +553,35 @@ class QosDeviceType(Enum):
 
 
 def _get_device_capabilities(
-    ipu_storage_container_ip: str, sma_port: int, device_type: QosDeviceType
+    ipu_storage_container_ip: str, ipu_service_port: int, device_type: QosDeviceType
 ) -> dict:
     request = {
         "method": "GetQosCapabilities",
         "params": {"device_type": device_type.value},
     }
-    response = send_sma_request(request, ipu_storage_container_ip, sma_port)
+    response = send_sma_request(request, ipu_storage_container_ip, ipu_service_port)
     return json.dumps(response)
 
 
 def get_virtio_blk_qos_capabilities(
-    ipu_storage_container_ip: str, sma_port: int
+    ipu_storage_container_ip: str, ipu_service_port: int
 ) -> dict:
     return _get_device_capabilities(
-        ipu_storage_container_ip, sma_port, QosDeviceType.DEVICE_TYPE_VIRTIO_BLK
+        ipu_storage_container_ip, ipu_service_port, QosDeviceType.DEVICE_TYPE_VIRTIO_BLK
     )
 
 
-def get_nvme_qos_capabilities(ipu_storage_container_ip: str, sma_port: int) -> dict:
+def get_nvme_qos_capabilities(
+    ipu_storage_container_ip: str, ipu_service_port: int
+) -> dict:
     return _get_device_capabilities(
-        ipu_storage_container_ip, sma_port, QosDeviceType.DEVICE_TYPE_NVME
+        ipu_storage_container_ip, ipu_service_port, QosDeviceType.DEVICE_TYPE_NVME
     )
 
 
 def set_qos_limits(
     ipu_storage_container_ip: str,
-    sma_port: int,
+    ipu_service_port: int,
     device_handle: str,
     volume_id: str,
     max_limits: dict,
@@ -586,4 +595,4 @@ def set_qos_limits(
     }
     if volume_id:
         request["params"]["volume_id"] = uuid2base64(volume_id)
-    return send_sma_request(request, ipu_storage_container_ip, sma_port)
+    return send_sma_request(request, ipu_storage_container_ip, ipu_service_port)
