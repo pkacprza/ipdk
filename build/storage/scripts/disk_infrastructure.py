@@ -177,7 +177,7 @@ def key2base64(key: str) -> str:
     return bytes2base64(key.encode())
 
 
-def create_virtio_blk(
+def _create_virtio_blk_over_sma(
     ipu_storage_container_ip: str,
     sma_port: int,
     host_target_ip: str,
@@ -231,12 +231,101 @@ def create_virtio_blk(
     return ""
 
 
+def _create_virtio_blk_over_opi(
+    ipu_storage_container_ip: str,
+    sma_port: int,
+    host_target_ip: str,
+    host_target_service_port: int,
+    volume_id: str,
+    physical_id: str,
+    virtual_id: str,
+    hostnqn: str,
+    traddr: str,
+    trsvcid: str,
+) -> str:
+    params = {
+        "nv_mf_remote_controller": {
+            "id": {"value": f"NvmeTcp{physical_id}.{virtual_id}"},
+            "traddr": traddr,
+            "subnqn": "nqn.2016-06.io.spdk:cnode0",
+            "trsvcid": str(trsvcid),
+            "trtype": "NVME_TRANSPORT_TCP",
+            "adrfam": "NVMF_ADRFAM_IPV4",
+            "multipath": "NVME_MULTIPATH_UNSPECIFIED",
+            "hostnqn": hostnqn,
+        }
+    }
+    os.system(
+        f"grpc_cli --json_input --json_output call {ipu_storage_container_ip}:{sma_port} \
+            opi_api.storage.v1.NVMfRemoteControllerService.CreateNVMfRemoteController '{json.dumps(params)}' &>/dev/null"
+    )
+    params = {
+        "virtio_blk": {
+            "id": {"value": f"VirtioBlk{physical_id}.{virtual_id}"},
+            "volume_id": {"value": str(volume_id)},
+            "pcie_id": {
+                "physical_function": physical_id,
+                "virtual_function": virtual_id,
+            },
+        }
+    }
+    if (
+        os.system(
+            f"grpc_cli --json_input --json_output call {ipu_storage_container_ip}:{sma_port} \
+            opi_api.storage.v1.FrontendVirtioBlkService.CreateVirtioBlk '{json.dumps(params)}' &> /dev/null"
+        )
+        == 0
+    ):
+        return params["virtio_blk"]["id"]["value"]
+    return ""
+
+
+def create_virtio_blk(
+    ipu_storage_container_ip: str,
+    sma_port: int,
+    host_target_ip: str,
+    host_target_service_port: int,
+    volume_id: str,
+    physical_id: str,
+    virtual_id: str,
+    hostnqn: str,
+    traddr: str,
+    trsvcid: str,
+) -> str:
+    if os.getenv("USE_OPI") == "true":
+        return _create_virtio_blk_over_opi(
+            ipu_storage_container_ip,
+            sma_port,
+            host_target_ip,
+            host_target_service_port,
+            volume_id,
+            physical_id,
+            virtual_id,
+            hostnqn,
+            traddr,
+            trsvcid,
+        )
+    else:
+        return _create_virtio_blk_over_sma(
+            ipu_storage_container_ip,
+            sma_port,
+            host_target_ip,
+            host_target_service_port,
+            volume_id,
+            physical_id,
+            virtual_id,
+            hostnqn,
+            traddr,
+            trsvcid,
+        )
+
+
 def _send_delete_sma_device_request(ipu_storage_container_ip, sma_port, device_handle):
     request = {"method": "DeleteDevice", "params": {"handle": device_handle}}
     send_sma_request(request, ipu_storage_container_ip, sma_port)
 
 
-def delete_sma_device(
+def _delete_sma_device_over_sma(
     ipu_storage_container_ip: str,
     sma_port: int,
     host_target_ip: str,
@@ -260,6 +349,46 @@ def delete_sma_device(
         logging.error(ex)
 
     return False
+
+
+def _delete_sma_device_over_opi(
+    ipu_storage_container_ip: str,
+    sma_port: int,
+    host_target_ip: str,
+    host_target_service_port: int,
+    device_handle: str,
+) -> bool:
+    params = {"name": str(device_handle)}
+    return os.system(
+        f"grpc_cli --json_input --json_output call {ipu_storage_container_ip}:{sma_port} \
+            opi_api.storage.v1.FrontendVirtioBlkService.DeleteVirtioBlk '{json.dumps(params)}' &> /dev/null"
+    )
+
+
+def delete_sma_device(
+    ipu_storage_container_ip: str,
+    sma_port: int,
+    host_target_ip: str,
+    host_target_service_port: int,
+    device_handle: str,
+) -> bool:
+
+    if os.getenv("USE_OPI") == "true":
+        _delete_sma_device_over_opi(
+            ipu_storage_container_ip,
+            sma_port,
+            host_target_ip,
+            host_target_service_port,
+            device_handle,
+        )
+    else:
+        _delete_sma_device_over_sma(
+            ipu_storage_container_ip,
+            sma_port,
+            host_target_ip,
+            host_target_service_port,
+            device_handle,
+        )
 
 
 def wait_for_volume_in_os(timeout: float = 2.0) -> None:

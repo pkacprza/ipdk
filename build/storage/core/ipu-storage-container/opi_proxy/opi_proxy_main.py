@@ -18,6 +18,8 @@ import frontend_virtio_blk_pb2
 import frontend_virtio_blk_pb2_grpc
 import frontend_nvme_pcie_pb2
 import frontend_nvme_pcie_pb2_grpc
+import backend_nvme_tcp_pb2
+import backend_nvme_tcp_pb2_grpc
 
 
 class PassThroughGrpcCallFunctor:
@@ -139,6 +141,11 @@ class FrontendVirtioBlk(frontend_virtio_blk_pb2_grpc.FrontendVirtioBlkServiceSer
             return client.DeleteVirtioBlk(request)
 
 
+class BackendNvmeTcp(backend_nvme_tcp_pb2_grpc.NVMfRemoteControllerServiceServicer):
+    def __init__(self, opi_service_address):
+        patch_unimplemented_to_pass_through_methods(self, opi_service_address)
+
+
 def serve():
     proxy_port = "50053"
     opi_server_port = 50052
@@ -160,12 +167,18 @@ def serve():
     frontend_nvme_pcie_pb2_grpc.add_FrontendNvmeServiceServicer_to_server(
         FrontendNvmePcie(opi_service_address), server
     )
+    backend_nvme_tcp_pb2_grpc.add_NVMfRemoteControllerServiceServicer_to_server(
+        BackendNvmeTcp(opi_service_address), server
+    )
     service_names = (
         frontend_virtio_blk_pb2.DESCRIPTOR.services_by_name[
             "FrontendVirtioBlkService"
         ].full_name,
         frontend_nvme_pcie_pb2.DESCRIPTOR.services_by_name[
             "FrontendNvmeService"
+        ].full_name,
+        backend_nvme_tcp_pb2.DESCRIPTOR.services_by_name[
+            "NVMfRemoteControllerService"
         ].full_name,
         reflection.SERVICE_NAME,
     )
