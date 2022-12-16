@@ -53,6 +53,30 @@ except:
 cmd = 'cd ipdk/build/storage/scripts && sudo DEBUG=true ./run_cmd_sender.sh'
 storage_target_terminal.execute(cmd)
 
+cmd_export = f'export host_target_ip="10.55.218.158" ;' \
+    f' export ipu_storage_container_ip="200.1.1.5" ;' \
+    f' export storage_target_ip="200.1.1.1" # Address visible from IPU side.'
 
+storage_target_terminal.execute(cmd_export)
+
+cmd_pf_creation = f'pf=$(create_nvme_device $ipu_storage_container_ip 8080 $host_target_ip 50051 0 0)'
+
+storage_target_terminal.execute(cmd_pf_creation)
+
+cmd_ramdrive_creation = f'create_and_expose_sybsystem_over_tcp' \
+    f'$storage_target_ip nqn.2016-06.io.spdk:cnode0 4420 ;' \
+    f'malloc0=$(create_ramdrive_and_attach_as_ns_to_subsystem' \
+    f'$storage_target_ip Malloc0 16 nqn.2016-06.io.spdk:cnode0) ; echo $malloc0'
+
+storage_target_terminal.execute(cmd_ramdrive_creation)
+
+cmd_volume_attach = f'attach_volume $ipu_storage_container_ip "$pf" "$malloc0" nqn.2016-06.io.spdk:cnode0 $storage_target_ip 4420'
+
+cmd_fio = f"""echo -e $(no_grpc_proxy="" grpc_cli call $host_target_ip:50051""" \
+    f""" RunFio "diskToExercise: {{ deviceHandle: '$pf' volumeId: '$malloc0'}}""" \
+    f""" fioArgs: '{{\"rw\":\"randrw\",\"runtime\":5, \"numjobs\": 1,""" \
+    f"""'\"time_based\": 1, \"group_reporting\": 1 }}'")'"""
+
+storage_target_terminal.execute(cmd_fio)
 
 print('koniec skryptu')
