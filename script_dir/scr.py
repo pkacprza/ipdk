@@ -8,6 +8,8 @@ from system_tools.config import (HostTargetConfig, IPUStorageConfig,
 from system_tools.ssh_terminal import SSHTerminal
 
 
+###Important pre-requisites:
+###Docker is installed and running with correct (proxy) settings.
 print('poczatek skryptu')
 tests_config = TestConfig()
 # Linkpartner
@@ -17,6 +19,7 @@ ipu_storage_terminal = SSHTerminal(IPUStorageConfig())
 # Silicon
 host_target_terminal = SSHTerminal(HostTargetConfig())
 
+import pdb; pdb.set_trace()
 storage_dir = "ipdk/build/storage"
 cmd = 'sudo rmmod nvme'
 try:
