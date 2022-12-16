@@ -8,6 +8,8 @@ from system_tools.config import (HostTargetConfig, IPUStorageConfig,
 from system_tools.ssh_terminal import SSHTerminal
 
 
+###Important pre-requisites:
+###Docker is installed and running with correct (proxy) settings.
 print('poczatek skryptu')
 tests_config = TestConfig()
 # Linkpartner
