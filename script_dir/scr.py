@@ -29,13 +29,17 @@ except:
 # copy repository
 repository_url = "'https://github.com/ipdk-io/ipdk.git'"
 cmd = f"git clone --branch main {repository_url}"
+
 try:
     host_target_terminal.execute(cmd)
 except:
+    print("host target didn't download repo")
     pass
+
 try:
     storage_target_terminal.execute(cmd)
 except:
+    print("host target didn't download repo")
     pass
 
 
@@ -50,6 +54,7 @@ cmd = (
 try:
     host_target_terminal.execute(cmd)
 except:
+    print("host target didn't download repo")
     pass
 
 cmd = 'cd ipdk/build/storage/scripts && sudo DEBUG=true ./run_cmd_sender.sh'
