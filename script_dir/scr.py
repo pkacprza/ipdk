@@ -24,6 +24,7 @@ cmd = 'sudo rmmod nvme'
 try:
     host_target_terminal.execute(cmd)
 except:
+    print("sudo rmod nvme didn't work")
     pass
 
 # copy repository
@@ -39,7 +40,7 @@ except:
 try:
     storage_target_terminal.execute(cmd)
 except:
-    print("host target didn't download repo")
+    print("storage target target didn't download repo")
     pass
 
 
@@ -54,7 +55,7 @@ cmd = (
 try:
     host_target_terminal.execute(cmd)
 except:
-    print("host target didn't download repo")
+    print("host target didn't run")
     pass
 
 cmd = 'cd ipdk/build/storage/scripts && sudo DEBUG=true ./run_cmd_sender.sh'
