@@ -10,7 +10,7 @@ from system_tools.ssh_terminal import SSHTerminal
 
 ###Important pre-requisites:
 ###Docker is installed and running with correct (proxy) settings.
-print('poczatek skryptu')
+print('Script is starting')
 tests_config = TestConfig()
 # Linkpartner
 storage_target_terminal = SSHTerminal(StorageTargetConfig())
@@ -79,6 +79,6 @@ cmd_fio = f"""echo -e $(no_grpc_proxy="" grpc_cli call $host_target_ip:50051""" 
     f""" fioArgs: '{{\"rw\":\"randrw\",\"runtime\":5, \"numjobs\": 1,""" \
     f"""'\"time_based\": 1, \"group_reporting\": 1 }}'")'"""
 
-storage_target_terminal.execute(cmd_fio)
-
-print('koniec skryptu')
+fio = storage_target_terminal.execute(cmd_fio)
+print(fio)
+print('script finished')
