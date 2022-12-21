@@ -178,13 +178,13 @@ FROM traffic-generator-env-vars AS traffic-generator
 RUN dnf install -y git glib2-devel libfdt-devel pixman-devel zlib-devel bzip2 \
     ninja-build python3 make gcc diffutils libaio-devel numactl-devel && \
     dnf clean all
-COPY tests/it/traffic-generator/init /init
 COPY --from=traffic-generator-base $DRIVE_TO_BOOT $DRIVE_TO_BOOT
-COPY /scripts /scripts
+COPY /scripts/vm /scripts/vm
 COPY /spdk/test/common/config/pkgdep/git /spdk/test/common/config/pkgdep/git
 RUN /scripts/vm/install_qemu.sh
+COPY tests/it/traffic-generator/init /init
+COPY /scripts/allocate_hugepages.sh /scripts/allocate_hugepages.sh
 ENV SHARED_VOLUME=/ipdk-shared
-ENV UNIX_SERIAL=vm_socket
 ENTRYPOINT ["/init"]
 
 
@@ -198,7 +198,8 @@ ARG HTTP_PROXY
 ARG HTTPS_PROXY
 ARG NO_PROXY
 
-RUN dnf install -y socat grpc-cli jq && dnf clean all
+RUN dnf install -y socat grpc-cli jq openssh-clients sshpass && dnf clean all
+RUN pip install paramiko
 
 COPY tests/it/test-drivers/test-helpers /test-helpers
 COPY scripts/ /scripts

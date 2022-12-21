@@ -64,6 +64,8 @@ releases/36/Cloud/x86_64/images/Fedora-Cloud-Base-36-1.5.x86_64.qcow2
     run_customize+=(--append-line "${systemd_host_target_service}:ExecStop=/bin/bash -c 'docker container rm -f \$(docker container ls  | grep host-target | awk \'{print \$1}\')'")
     run_customize+=(--append-line "${systemd_host_target_service}:[Install]")
     run_customize+=(--append-line "${systemd_host_target_service}:WantedBy=multi-user.target")
+    run_customize+=(--append-line "/etc/ssh/sshd_config:PasswordAuthentication yes")
+    run_customize+=(--append-line "/etc/ssh/sshd_config:PermitRootLogin yes")
     run_customize+=(--firstboot-command "docker load --input ${vm_host_target_tar_path}")
     run_customize+=(--firstboot-command "rm -f ${vm_host_target_tar_path}")
     run_customize+=(--firstboot-command 'systemctl start host-target')

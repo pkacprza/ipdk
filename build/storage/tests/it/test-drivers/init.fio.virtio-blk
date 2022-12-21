@@ -16,6 +16,7 @@ declare virtio_blk_virtual_id
 declare port_to_expose
 declare traffic_generator_ip
 declare host_target_ip
+declare vm_ssh_port
 # shellcheck disable=SC1091,SC1090
 source "${current_script_dir}"/test-helpers
 
@@ -23,11 +24,11 @@ wait_until_port_on_ip_addr_open "${storage_target_ip}" "${DEFAULT_SPDK_PORT}"
 create_and_expose_sybsystem_over_tcp \
 	"${storage_target_ip}" "${nqn}" "${port_to_expose}"
 
-wait_until_vm_is_up "${vm_serial}"
+wait_until_vm_is_up "$host_target_ip" "$vm_ssh_port"
 
-log_in_with_default_credentials "${vm_serial}"
+log_in_with_default_credentials "$host_target_ip" "$vm_ssh_port"
 
-wait_until_host_target_is_up "${vm_serial}"
+wait_until_host_target_is_up "$host_target_ip" "$vm_ssh_port"
 
 function create_virtio_blk_and_test_run_fio() {
 	local virtio_blk_physical_id="${1}"

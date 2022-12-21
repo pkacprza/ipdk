@@ -14,7 +14,7 @@ function get_number_of_virtio_blk() {
     python3 <<- EOF
 from scripts import disk_infrastructure
 
-print(disk_infrastructure.get_number_of_virtio_blk(sock="${1}"))
+print(disk_infrastructure.get_number_of_virtio_blk(addr="${1}", ssh_port=int("${2}")))
 EOF
 }
 
@@ -22,7 +22,7 @@ function get_number_of_nvme_devices() {
     python3 <<- EOF
 from scripts import disk_infrastructure
 
-print(disk_infrastructure.get_number_of_nvme_devices(sock="${1}"))
+print(disk_infrastructure.get_number_of_nvme_devices(addr="${1}", ssh_port=int("${2}")))
 EOF
 }
 
@@ -31,7 +31,7 @@ function is_virtio_blk_attached() {
 import sys
 from scripts import disk_infrastructure
 
-if not disk_infrastructure.is_virtio_blk_attached(sock="${1}"):
+if not disk_infrastructure.is_virtio_blk_attached(addr="${1}", ssh_port=int("${2}")):
     sys.exit(1)
 EOF
 }
@@ -41,7 +41,7 @@ function is_virtio_blk_not_attached() {
 import sys
 from scripts import disk_infrastructure
 
-if disk_infrastructure.is_virtio_blk_attached(sock="${1}"):
+if disk_infrastructure.is_virtio_blk_attached(addr="${1}", ssh_port=int("${2}")):
     sys.exit(1)
 EOF
 }
@@ -52,8 +52,9 @@ import sys
 from scripts import disk_infrastructure
 
 if not disk_infrastructure.verify_expected_number_of_virtio_blk_devices(
-    vm_serial="${1}",
-    expected_number_of_devices=int("${2}"),
+    addr="${1}",
+    ssh_port=int("${2}"),
+    expected_number_of_devices=int("${3}"),
 ):
     sys.exit(1)
 EOF
@@ -291,8 +292,9 @@ import sys
 from scripts import disk_infrastructure
 
 if not disk_infrastructure.verify_expected_number_of_nvme_devices(
-    vm_serial="${1}",
-    expected_number_of_devices=int("${2}"),
+    addr="${1}",
+    ssh_port="$2",
+    expected_number_of_devices=int("${3}"),
 ):
     sys.exit(1)
 EOF
@@ -304,8 +306,9 @@ import sys
 from scripts import disk_infrastructure
 
 if not disk_infrastructure.verify_expected_number_of_nvme_namespaces(
-    vm_serial="${1}",
-    expected_number_of_namespaces=int("${2}"),
+    addr="${1}",
+    ssh_port="$2",
+    expected_number_of_namespaces=int("${3}"),
 ):
     sys.exit(1)
 EOF

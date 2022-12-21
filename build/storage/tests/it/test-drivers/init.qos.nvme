@@ -14,6 +14,7 @@ declare storage_target_ip
 declare ipu_storage_container_ip
 declare port_to_expose
 declare host_target_ip
+declare vm_ssh_port
 # shellcheck disable=SC1091,SC1090
 source "${current_script_dir}"/test-helpers
 
@@ -25,11 +26,11 @@ ramdrive_size_in_mb=16
 malloc0=$(create_ramdrive_and_attach_as_ns_to_subsystem \
 	"${storage_target_ip}" Malloc0 "${ramdrive_size_in_mb}" "${nqn}")
 
-wait_until_vm_is_up "${vm_serial}"
+wait_until_vm_is_up "$host_target_ip" "$vm_ssh_port"
 
-log_in_with_default_credentials "${vm_serial}"
+log_in_with_default_credentials "$host_target_ip" "$vm_ssh_port"
 
-wait_until_host_target_is_up "${vm_serial}"
+wait_until_host_target_is_up "$host_target_ip" "$vm_ssh_port"
 
 physical_id=0
 virtual_id=0
@@ -38,7 +39,7 @@ nvme=$(create_nvme_device "$ipu_storage_container_ip" \
     "$physical_id" "$virtual_id")
 attach_volume "$ipu_storage_container_ip" "$nvme" "$malloc0" "$nqn" \
     "$storage_target_ip"
-verify_expected_number_of_nvme_devices "${vm_serial}" 1
+verify_expected_number_of_nvme_devices "$host_target_ip" "$vm_ssh_port" 1
 
 
 qos_capabilities=$(get_nvme_qos_capabilities "$ipu_storage_container_ip" "$DEFAULT_SMA_PORT")

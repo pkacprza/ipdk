@@ -28,6 +28,8 @@ export HOST_TARGET_SERVICE_PORT_IN_VM
 "${scripts_dir}"/vm/prepare_vm.sh
 "${scripts_dir}"/allocate_hugepages.sh
 
+ssh_port="${SSH_PORT:-"${DEFAULT_VM_SSH_PORT}"}"
+
 run_vm="sudo $QEMU_BINARY \
   ${qemu_serial} \
   --enable-kvm \
@@ -39,7 +41,7 @@ run_vm="sudo $QEMU_BINARY \
   -device pci-bridge,chassis_nr=1,id=${IPDK_PCI_BRIDGE_0} \
   -device pci-bridge,chassis_nr=2,id=${IPDK_PCI_BRIDGE_1} \
   -net nic,model=e1000 \
-  -net user,hostfwd=tcp::${HOST_TARGET_SERVICE_PORT}-:${HOST_TARGET_SERVICE_PORT_IN_VM} \
+  -net user,hostfwd=tcp::${HOST_TARGET_SERVICE_PORT}-:${HOST_TARGET_SERVICE_PORT_IN_VM},hostfwd=tcp::$ssh_port-:22 \
   -qmp tcp:${DEFAULT_QMP_ADDRESS}:${DEFAULT_QMP_PORT},server,wait=off \
   --nographic \
   $*"

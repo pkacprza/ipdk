@@ -13,8 +13,8 @@ import sys
 import time
 import uuid
 import json
+import paramiko
 
-from scripts import socket_functions
 from enum import Enum
 
 sys.path.append("/usr/libexec/spdk/scripts")
@@ -24,30 +24,39 @@ import rpc
 logging.root.setLevel(logging.CRITICAL)
 
 
-def get_number_of_virtio_blk(sock: str) -> int:
-    return _get_number_of_devices(sock, "vd[a-z]+\\b")
+def get_number_of_virtio_blk(addr: str, ssh_port: int) -> int:
+    return _get_number_of_devices(addr, ssh_port, "vd[a-z]+\\b")
 
 
-def get_number_of_nvme_devices(sock: str) -> int:
-    return _get_number_of_devices(sock, "nvme[0-9]+\\b")
+def get_number_of_nvme_devices(addr: str, ssh_port: int) -> int:
+    return _get_number_of_devices(addr, ssh_port, "nvme[0-9]+\\b")
 
 
-def get_number_of_nvme_namespaces(sock: str) -> int:
-    return _get_number_of_devices(sock, "nvme[0-9]+n[0-9]+\\b")
+def get_number_of_nvme_namespaces(addr: str, ssh_port: int) -> int:
+    return _get_number_of_devices(addr, ssh_port, "nvme[0-9]+n[0-9]+\\b")
 
 
-def _get_number_of_devices(sock: str, device_regex_filter: str) -> int:
+def _get_number_of_devices(addr: str, ssh_port: int, device_regex_filter: str) -> int:
     cmd = "ls -1 /dev"
-    out = socket_functions.send_command_over_unix_socket(
-        sock=sock, cmd=cmd, wait_for_secs=1
+    username = "root"
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.connect(
+        addr,
+        ssh_port,
+        username,
     )
+    _, stdout, stderr = ssh.exec_command(cmd, timeout=15)
+    if stdout.channel.recv_exit_status():
+        raise RuntimeError(f"Couldn't run cmd. '{stderr.read().decode()}'")
+    out = stdout.read().decode().rstrip("\n")
     logging.info(out)
     number_of_devices = len(re.findall(device_regex_filter, out))
     return number_of_devices
 
 
-def is_virtio_blk_attached(sock: str) -> bool:
-    if get_number_of_virtio_blk(sock) == 0:
+def is_virtio_blk_attached(addr: str, ssh_port: int) -> bool:
+    if get_number_of_virtio_blk(addr, ssh_port) == 0:
         logging.error("virtio-blk is not found")
         return False
     logging.info("virtio-blk is found")
@@ -69,27 +78,27 @@ def _verify_expected_number_of_devices(
 
 
 def verify_expected_number_of_virtio_blk_devices(
-    vm_serial: str, expected_number_of_devices: int
+    addr: str, ssh_port: int, expected_number_of_devices: int
 ) -> bool:
-    number_of_devices = get_number_of_virtio_blk(vm_serial)
+    number_of_devices = get_number_of_virtio_blk(addr, ssh_port)
     return _verify_expected_number_of_devices(
         expected_number_of_devices, number_of_devices
     )
 
 
 def verify_expected_number_of_nvme_devices(
-    vm_serial: str, expected_number_of_devices: int
+    addr: str, ssh_port: int, expected_number_of_devices: int
 ) -> bool:
-    number_of_devices = get_number_of_nvme_devices(vm_serial)
+    number_of_devices = get_number_of_nvme_devices(addr, ssh_port)
     return _verify_expected_number_of_devices(
         expected_number_of_devices, number_of_devices
     )
 
 
 def verify_expected_number_of_nvme_namespaces(
-    vm_serial: str, expected_number_of_namespaces: int
+    addr: str, ssh_port: int, expected_number_of_namespaces: int
 ) -> bool:
-    number_of_devices = get_number_of_nvme_namespaces(vm_serial)
+    number_of_devices = get_number_of_nvme_namespaces(addr, ssh_port)
     return _verify_expected_number_of_devices(
         expected_number_of_namespaces, number_of_devices
     )
