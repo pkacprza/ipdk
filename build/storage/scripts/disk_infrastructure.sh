@@ -10,56 +10,6 @@ export DEFAULT_NVME_PORT=4420
 export DEFAULT_HOST_TARGET_SERVICE_PORT=50051
 export MAX_NUMBER_OF_NAMESPACES_IN_CONTROLLER=1024
 
-function get_number_of_virtio_blk() {
-    python3 <<- EOF
-from scripts import disk_infrastructure
-
-print(disk_infrastructure.get_number_of_virtio_blk(addr="${1}", ssh_port=int("${2}")))
-EOF
-}
-
-function get_number_of_nvme_devices() {
-    python3 <<- EOF
-from scripts import disk_infrastructure
-
-print(disk_infrastructure.get_number_of_nvme_devices(addr="${1}", ssh_port=int("${2}")))
-EOF
-}
-
-function is_virtio_blk_attached() {
-    python3 <<- EOF
-import sys
-from scripts import disk_infrastructure
-
-if not disk_infrastructure.is_virtio_blk_attached(addr="${1}", ssh_port=int("${2}")):
-    sys.exit(1)
-EOF
-}
-
-function is_virtio_blk_not_attached() {
-    python3 <<- EOF
-import sys
-from scripts import disk_infrastructure
-
-if disk_infrastructure.is_virtio_blk_attached(addr="${1}", ssh_port=int("${2}")):
-    sys.exit(1)
-EOF
-}
-
-function verify_expected_number_of_virtio_blk_devices() {
-    python3 <<- EOF
-import sys
-from scripts import disk_infrastructure
-
-if not disk_infrastructure.verify_expected_number_of_virtio_blk_devices(
-    addr="${1}",
-    ssh_port=int("${2}"),
-    expected_number_of_devices=int("${3}"),
-):
-    sys.exit(1)
-EOF
-}
-
 function create_and_expose_sybsystem_over_tcp() {
     python3 <<- EOF
 from scripts import disk_infrastructure
@@ -267,7 +217,6 @@ EOF
 }
 
 
-
 function detach_volume() {
     python3 <<- EOF
 import sys
@@ -284,34 +233,6 @@ EOF
 
 function delete_nvme_device() {
     _delete_sma_device "$@"
-}
-
-function verify_expected_number_of_nvme_devices() {
-    python3 <<- EOF
-import sys
-from scripts import disk_infrastructure
-
-if not disk_infrastructure.verify_expected_number_of_nvme_devices(
-    addr="${1}",
-    ssh_port="$2",
-    expected_number_of_devices=int("${3}"),
-):
-    sys.exit(1)
-EOF
-}
-
-function verify_expected_number_of_nvme_namespaces() {
-    python3 <<- EOF
-import sys
-from scripts import disk_infrastructure
-
-if not disk_infrastructure.verify_expected_number_of_nvme_namespaces(
-    addr="${1}",
-    ssh_port="$2",
-    expected_number_of_namespaces=int("${3}"),
-):
-    sys.exit(1)
-EOF
 }
 
 function get_virtio_blk_qos_capabilities() {
@@ -335,7 +256,6 @@ capabilities = disk_infrastructure.get_nvme_qos_capabilities(
 print(str(capabilities))
 EOF
 }
-
 
 
 function set_max_qos_limits() {

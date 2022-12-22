@@ -42,7 +42,7 @@ function wait_until_host_target_is_up() {
 	local ssh_port="$2"
 	local wait_counter=0
 	local wait_period_sec=1
-	local max_wait_counter=30
+	local max_wait_counter=60
 	local cmd='docker container ls | grep -c "host-target"'
 
 	while [ "${wait_counter}" -le "${max_wait_counter}" ] ; do
@@ -224,6 +224,84 @@ function transform_fio_output_to_parsebale_form() {
 	fio_out="{ $fio_out }"
 	fio_out=$(echo "$fio_out" | sed -r 's/\"/"/g' | sed -r 's/fioOutput/"fioOutput"/g')
 	echo "$fio_out"
+}
+
+function get_number_of_virtio_blk() {
+    python3 <<- EOF
+from scripts import disk_infrastructure
+
+print(disk_infrastructure.get_number_of_virtio_blk(addr="${1}", ssh_port=int("${2}")))
+EOF
+}
+
+function get_number_of_nvme_devices() {
+    python3 <<- EOF
+from scripts import disk_infrastructure
+
+print(disk_infrastructure.get_number_of_nvme_devices(addr="${1}", ssh_port=int("${2}")))
+EOF
+}
+
+function is_virtio_blk_attached() {
+    python3 <<- EOF
+import sys
+from scripts import disk_infrastructure
+
+if not disk_infrastructure.is_virtio_blk_attached(addr="${1}", ssh_port=int("${2}")):
+    sys.exit(1)
+EOF
+}
+
+function is_virtio_blk_not_attached() {
+    python3 <<- EOF
+import sys
+from scripts import disk_infrastructure
+
+if disk_infrastructure.is_virtio_blk_attached(addr="${1}", ssh_port=int("${2}")):
+    sys.exit(1)
+EOF
+}
+
+function verify_expected_number_of_virtio_blk_devices() {
+    python3 <<- EOF
+import sys
+from scripts import disk_infrastructure
+
+if not disk_infrastructure.verify_expected_number_of_virtio_blk_devices(
+    addr="${1}",
+    ssh_port=int("${2}"),
+    expected_number_of_devices=int("${3}"),
+):
+    sys.exit(1)
+EOF
+}
+
+function verify_expected_number_of_nvme_devices() {
+    python3 <<- EOF
+import sys
+from scripts import disk_infrastructure
+
+if not disk_infrastructure.verify_expected_number_of_nvme_devices(
+    addr="${1}",
+    ssh_port="$2",
+    expected_number_of_devices=int("${3}"),
+):
+    sys.exit(1)
+EOF
+}
+
+function verify_expected_number_of_nvme_namespaces() {
+    python3 <<- EOF
+import sys
+from scripts import disk_infrastructure
+
+if not disk_infrastructure.verify_expected_number_of_nvme_namespaces(
+    addr="${1}",
+    ssh_port="$2",
+    expected_number_of_namespaces=int("${3}"),
+):
+    sys.exit(1)
+EOF
 }
 
 storage_target_ip=${STORAGE_TARGET_IP:-"$(hostname_to_ip storage-target)"}
