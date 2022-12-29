@@ -1,0 +1,11 @@
+{
+    "plugin": {
+        "qmpConnectionProtocol": "tcp",
+        "qmpAddress": "127.0.0.1:5555",
+        "controllerSockDir": "/home/akoltun/workspace/spdk/build/bin",
+        "qemuPciBuses": [
+            "pci.ipdk.0",
+            "pci.ipdk.1"
+        ]
+    }
+}
