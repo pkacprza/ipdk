@@ -1,3 +1,6 @@
 [submodule "build/storage/spdk"]
 	path = build/storage/spdk
 	url = https://github.com/spdk/spdk.git
+[submodule "build/storage/opi-spdk-bridge"]
+	path = build/storage/opi-spdk-bridge
+	url = https://github.com/artek-koltun/opi-spdk-bridge.git
