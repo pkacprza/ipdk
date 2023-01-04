@@ -59,6 +59,7 @@ class VirtualMachine:
         if not self.platform.get_pid_from_port(port) or not os.path.exists(
             self.socket_path
         ):
+            import pdb; pdb.set_trace()
             raise VirtualizationException("VM is not running")
         time.sleep(60)
 
