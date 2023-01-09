@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"sync"
 	"time"
 
 	qmp "github.com/digitalocean/go-qemu/qmp"
@@ -19,10 +20,10 @@ const (
 )
 
 type QemuMonitor interface {
-	AddDevice(chardev string, bus string, addr int32) error
-	DeleteDevice(ctrlr string) error
 	AddChardev(ctrlr string, sockPath string) error
 	DeleteChardev(ctrlr string) error
+	AddDevice(chardev string, bus string, addr int32) error
+	DeleteDevice(ctrlr string) error
 }
 
 func NewQemuMonitor(qmpConnectionProtocol string, qmpAddress string,
@@ -31,7 +32,7 @@ func NewQemuMonitor(qmpConnectionProtocol string, qmpAddress string,
 	if qmpConnectionProtocol != qmpTcp {
 		return nil, fmt.Errorf("Not supported communication protocol: %v", qmpConnectionProtocol)
 	}
-	return &qmpQemuMonitor{qmpConnectionProtocol, qmpAddress, timeoutSec}, nil
+	return &qmpQemuMonitor{qmpConnectionProtocol, qmpAddress, timeoutSec, sync.Mutex{}}, nil
 }
 
 type qmpQemuMonitor struct {
@@ -39,9 +40,31 @@ type qmpQemuMonitor struct {
 	qmpAddress            string
 
 	timeoutSec time.Duration
+	mu         sync.Mutex
+}
+
+func (s *qmpQemuMonitor) AddChardev(ctrlr string, sockPath string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	monitor, rawMonitor, err := s.createConnectedMonitors()
+	if err != nil {
+		return err
+	}
+	defer monitor.Disconnect()
+
+	server := false
+	socketBackend := qmpraw.ChardevBackendSocket{
+		Addr:   qmpraw.SocketAddressLegacyUnix{Path: sockPath},
+		Server: &server}
+	_, err = rawMonitor.ChardevAdd(ctrlr, socketBackend)
+	return err
 }
 
 func (s *qmpQemuMonitor) DeleteChardev(ctrlr string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	monitor, rawMonitor, err := s.createConnectedMonitors()
 	if err != nil {
 		return err
@@ -52,6 +75,9 @@ func (s *qmpQemuMonitor) DeleteChardev(ctrlr string) error {
 }
 
 func (s *qmpQemuMonitor) AddDevice(chardev string, bus string, addr int32) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	monitor, err := s.createConnectedMonitor()
 	if err != nil {
 		return err
@@ -86,6 +112,9 @@ func (s *qmpQemuMonitor) AddDevice(chardev string, bus string, addr int32) error
 }
 
 func (s *qmpQemuMonitor) DeleteDevice(ctrlr string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	monitor, rawMonitor, err := s.createConnectedMonitors()
 	if err != nil {
 		return err
@@ -99,53 +128,51 @@ func (s *qmpQemuMonitor) DeleteDevice(ctrlr string) error {
 	return s.waitForEvent("DEVICE_DELETED", ctrlr, monitor)
 }
 
-func (s *qmpQemuMonitor) AddChardev(ctrlr string, sockPath string) error {
-	monitor, rawMonitor, err := s.createConnectedMonitors()
-	if err != nil {
-		return err
-	}
-	defer monitor.Disconnect()
-
-	server := false
-	socketBackend := qmpraw.ChardevBackendSocket{Addr: qmpraw.SocketAddressLegacyUnix{sockPath}, Server: &server}
-	_, err = rawMonitor.ChardevAdd(ctrlr, socketBackend)
-	return err
-}
-
 func (s *qmpQemuMonitor) waitForEvent(event string, dataTag string, monitor qmp.Monitor) error {
 	begin := time.Now()
 	end := begin.Add(s.timeoutSec)
 	stream, _ := monitor.Events(context.TODO())
 
-	for e := range stream {
-		log.Println(e.Event)
-		log.Println(e.Data)
-		if dataTag != "" {
-			dataTagFound := false
-			for _, v := range e.Data {
-				value, ok := v.(string)
-				if !ok {
-					continue
-				}
-
-				if strings.Contains(value, dataTag) {
-					dataTagFound = true
-					break
-				}
+	waitChan := make(chan bool, 1)
+	go func() {
+		for e := range stream {
+			if time.Now().After(end) {
+				return
 			}
-			if !dataTagFound {
+
+			if !strings.Contains(e.Event, event) {
 				continue
 			}
+
+			if dataTag != "" && !s.containsTag(e.Data, dataTag) {
+				continue
+			}
+
+			waitChan <- true
+			return
 		}
-		if strings.Contains(e.Event, event) {
-			return nil
+	}()
+	select {
+	case <-waitChan:
+		log.Println("Event:", event, "found")
+		return nil
+	case <-time.After(s.timeoutSec):
+		return fmt.Errorf("Event %v not found", event)
+	}
+}
+
+func (s *qmpQemuMonitor) containsTag(eventData map[string]interface{}, dataTag string) bool {
+	for _, v := range eventData {
+		value, ok := v.(string)
+		if !ok {
+			continue
 		}
 
-		if time.Now().After(end) {
-			return fmt.Errorf("Event %v not found", event)
+		if strings.Contains(value, dataTag) {
+			return true
 		}
 	}
-	return fmt.Errorf("Disconnect with QEMU monitor")
+	return false
 }
 
 func (s *qmpQemuMonitor) createConnectedMonitor() (qmp.Monitor, error) {
