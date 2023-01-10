@@ -178,7 +178,6 @@ class BaseTestPlatform:
         self.terminal.execute(f"sudo kill -9 {pid}")
 
     def clean(self):
-        self.cmd_sender.stop()
         self.docker.delete_containers()
 
     def is_port_free(self, port):
@@ -317,3 +316,6 @@ class PlatformFactory:
 
     def create_host_target_platform(self):
         return HostTargetPlatform(self.cmd_sender)
+
+    def get_cmd_sender(self):
+        return self.cmd_sender
