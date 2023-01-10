@@ -102,15 +102,26 @@ class CMDSenderContainer(DockerContainer):
         )
         super().__init__(terminal, cmd, "cmd-sender")
 
+    def run_fio(self, host_id, virtio_blk, fio_args):
+        port = 50051
+        cmd = (
+            f"""docker exec {self.id} """
+            f"""python -c "import sys; sys.path.append('/'); from scripts.disk_infrastructure import *; """
+            f"""import json; """
+            f"""fio={{'diskToExercise': {{'deviceHandle': '{virtio_blk}'}}"""
+            f""",'fioArgs': json.dumps({fio_args})}}; """
+            f"""print(send_host_target_request(HostTargetServiceMethod.RunFio, fio, '{host_id.ip_address}', {port}))" """
+        )
+        return self._terminal.execute(cmd) == "True"
+
     def create_subsystem(
         self, ip_addr: str, nqn: str, port_to_expose: int, storage_target_port: int
     ):
-        return self._terminal.execute(
-            f"""docker exec {self.id} """
-            f"""python -c "from scripts.disk_infrastructure import create_and_expose_subsystem_over_tcp; """
-            f"""create_and_expose_subsystem_over_tcp"""
-            f"""('{ip_addr}', '{nqn}', '{port_to_expose}', {storage_target_port})" """
-        )
+        cmd = f"""docker exec {self.id} """ \
+        f"""python -c 'import sys; sys.path.append("/"); from scripts.disk_infrastructure import create_and_expose_subsystem_over_tcp; """ \
+        f"""create_and_expose_subsystem_over_tcp""" \
+        f"""("{ip_addr}", "{nqn}", "{port_to_expose}", {storage_target_port})'"""
+        self._terminal.execute(cmd)
 
     def create_ramdrives(
         self, number: int, ip_addr: str, nqn: str, storage_target_port: int
@@ -119,7 +130,7 @@ class CMDSenderContainer(DockerContainer):
         for i in range(number):
             cmd = (
                 f"""docker exec {self.id} """
-                f"""python -c 'from scripts.disk_infrastructure import create_ramdrive_and_attach_as_ns_to_subsystem; """
+                f"""python -c 'import sys; sys.path.append("/"); from scripts.disk_infrastructure import create_ramdrive_and_attach_as_ns_to_subsystem; """
                 f"""print(create_ramdrive_and_attach_as_ns_to_subsystem"""
                 f"""("{ip_addr}", "Malloc{i}", 4, "{nqn}", {storage_target_port}))'"""
             )
@@ -131,7 +142,7 @@ class CMDSenderContainer(DockerContainer):
     ):
         cmd = (
             f"""docker exec {self.id} """
-            f"""python -c 'from scripts.disk_infrastructure import create_ramdrive_and_attach_as_ns_to_subsystem; """
+            f"""python -c 'import sys; sys.path.append("/"); from scripts.disk_infrastructure import create_ramdrive_and_attach_as_ns_to_subsystem; """
             f"""print(create_ramdrive_and_attach_as_ns_to_subsystem"""
             f"""("{ip_addr}", "Malloc{number}", 4, "{nqn}", {storage_target_port}))'"""
         )
@@ -153,12 +164,12 @@ class CMDSenderContainer(DockerContainer):
         """
         cmd = (
             f"""docker exec {self.id} """
-            f"""python -c "from scripts.disk_infrastructure import create_virtio_blk; """
+            f"""python -c 'import sys; sys.path.append("/"); from scripts.disk_infrastructure import create_virtio_blk; """
             f"""print(create_virtio_blk"""
-            f"""('{ipu_storage_container_ip}', '{sma_port}', '{host_target_address_service.ip_address}', """
+            f"""("{ipu_storage_container_ip}", "{sma_port}", "{host_target_address_service.ip_address}", """
             f"""{host_target_address_service.port}, """
-            f"""'{volume_id}', '{physical_id}', '0', '{nqn}', """
-            f"""'{storage_target_ip}', '{port_to_expose}'))" """
+            f""""{volume_id}", "{physical_id}", "0", "{nqn}", """
+            f""""{storage_target_ip}", "{port_to_expose}"))'"""
         )
         out = self._terminal.execute(cmd)
         time.sleep(5)
@@ -173,10 +184,10 @@ class CMDSenderContainer(DockerContainer):
     ):
         cmd = (
             f"""docker exec {self.id} """
-            f"""python -c "from scripts.disk_infrastructure import delete_sma_device; """
+            f"""python -c 'import sys; sys.path.append("/"); from scripts.disk_infrastructure import delete_sma_device; """
             f"""print(delete_sma_device"""
-            f"""('{ipu_storage_container_ip}', '{sma_port}', '{host_target_address_service.ip_address}', """
-            f"""{host_target_address_service.port}, '{device_handle}'))" """
+            f"""("{ipu_storage_container_ip}", "{sma_port}", "{host_target_address_service.ip_address}", """
+            f"""{host_target_address_service.port}, "{device_handle}"))'"""
         )
         return self._terminal.execute(cmd) == "True"
 

@@ -4,6 +4,7 @@
 
 from system_tools.config import (HostTargetConfig, IPUStorageConfig,
                                  StorageTargetConfig)
+from system_tools.const import FIO_COMMON
 from system_tools.docker import (CMDSenderContainer, Docker,
                                  HostTargetContainer, IPUStorageContainer,
                                  StorageTargetContainer)
@@ -33,24 +34,33 @@ class ServiceAddress:
 
 
 class IpuStorageDevice:
-    # TODO add implementation
-    def run_fio(self, fio_args: dict):
-        pass
-
-
-class VirtioBlkDevice(IpuStorageDevice):
     def __init__(
-        self,
-        device_handle,
-        remote_nvme_storage,
-        ipu_platform,
-        host_target_address_service,
+            self,
+            device_handle,
+            remote_nvme_storage,
+            ipu_platform,
+            host_target_address_service,
     ):
         self._device_handle = device_handle
         self._remote_nvme_storage = remote_nvme_storage
         self._ipu_platform = ipu_platform
         self._host_target_address_service = host_target_address_service
 
+    def _prepare_fio_json_args(self, option):
+        return {
+            **FIO_COMMON,
+            "rw": option.lower(),
+        }
+
+    def run_fio(self, option):
+        return self._ipu_platform.cmd_sender.run_fio(
+            self._host_target_address_service,
+            self._device_handle,
+            self._prepare_fio_json_args(option),
+        )
+
+
+class VirtioBlkDevice(IpuStorageDevice):
     def delete(self, cmd_sender):
         return cmd_sender.delete_virtio_blk_device(
             self._ipu_platform.get_ip_address(),
@@ -178,7 +188,6 @@ class BaseTestPlatform:
         self.terminal.execute(f"sudo kill -9 {pid}")
 
     def clean(self):
-        self.cmd_sender.stop()
         self.docker.delete_containers()
 
     def is_port_free(self, port):
@@ -318,3 +327,6 @@ class PlatformFactory:
 
     def create_host_target_platform(self):
         return HostTargetPlatform(self.cmd_sender)
+
+    def get_cmd_sender(self):
+        return self.cmd_sender
