@@ -82,7 +82,7 @@ function run_spdk() {
 }
 
 spdk_socket="/var/tmp/spdk.sock"
-spdk_pid_file="/spdk_pid"
+spdk_pid_file="/var/tmp/spdk_pid"
 args+=("-r" "$spdk_socket")
 args+=("-f" "$spdk_pid_file")
 rm -f "$spdk_pid_file"

@@ -6,7 +6,7 @@
 
 [ "$DEBUG" == 'true' ] && set -x && export SMA_LOGLEVEL=DEBUG
 
-spdk_pid_file="/spdk_pid"
+spdk_pid_file="/var/tmp/spdk_pid"
 rm -f "$spdk_pid_file"
 
 IFS=' ' read -ra sock_path_line_content <<< "$(grep 'sock_path:' < /sma_config.yml)"
