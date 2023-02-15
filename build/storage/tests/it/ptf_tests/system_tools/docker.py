@@ -112,6 +112,17 @@ class CMDSenderContainer(DockerContainer):
             f"""('{ip_addr}', '{nqn}', '{port_to_expose}', {storage_target_port})" """
         )
 
+    def run_fio(self):
+        return self._terminal.execute(
+            f"""docker exec {self.id} """
+            f"""python -c "from scripts.disk_infrastructure import*; """
+            f"""import json;"""
+            f"""ip='10.211.108.34'"""
+            f"""port=50051"""
+            f"""fio={"diskToExercise": {"deviceHandle": "virtio_blk:sma-0"},"fioArgs": json.dumps({"rw":"randrw","runtime":1,"numjobs":1,"time_based":1,"group_reporting":1})}"""
+            f"""send_host_target_request(HostTargetServiceMethod.RunFio, fio, ip, port)"""
+        )
+
     def create_ramdrives(
         self, number: int, ip_addr: str, nqn: str, storage_target_port: int
     ):
