@@ -115,7 +115,7 @@ class CMDSenderContainer(DockerContainer):
     def run_fio(self):
         return self._terminal.execute(
             f"""docker exec {self.id} """
-            f"""python -c "from scripts.disk_infrastructure import *"""
+            f"""python -c "from scripts.disk_infrastructure import *" """
             f"""import json"""
             f"""ip='10.211.108.34'"""
             f"""port=50051"""
