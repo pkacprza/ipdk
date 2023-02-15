@@ -119,7 +119,7 @@ class CMDSenderContainer(DockerContainer):
             f"""import json;"""
             f"""ip='10.211.108.34'"""
             f"""port=50051"""
-            f"""fio={"diskToExercise": {"deviceHandle": "$virtio_blk0'},"fioArgs": json.dumps({"rw":"randrw","runtime":1,"numjobs":1,"time_based":1,"group_reporting":1})}"""
+            f"""fio={"diskToExercise": {"deviceHandle": "$virtio_blk0"},"fioArgs": json.dumps({"rw":"randrw","runtime":1,"numjobs":1,"time_based":1,"group_reporting":1})}"""
             f"""send_host_target_request(HostTargetServiceMethod.RunFio, fio, ip, port)"""
         )
 
