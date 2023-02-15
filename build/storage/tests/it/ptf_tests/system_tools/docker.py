@@ -115,11 +115,13 @@ class CMDSenderContainer(DockerContainer):
     def run_fio(self):
         return self._terminal.execute(
             f"""docker exec {self.id} """
-            f"""python -c "from scripts.disk_infrastructure import*; """
+            f"""python -c "from scripts.disk_infrastructure import *; """
             f"""import json;"""
-            f"""ip='10.211.108.34'"""
-            f"""port=50051"""
-            f"""fio={"diskToExercise": {"deviceHandle": "$virtio_blk0"},"fioArgs": json.dumps({"rw":"randrw","runtime":1,"numjobs":1,"time_based":1,"group_reporting":1})}"""
+            f"""ip='10.211.108.34';"""
+            f"""port=50051;"""
+            f"""fio={"diskToExercise": {"deviceHandle": "$virtio_blk0"},"fioArgs": '{"rw":"randrw","runtime":1,"numjobs":1,"time_based":1,"group_reporting":1}'}"""
+            # f"""print($virtio_blk0)"""
+            # f"""print(fio)"""
             f"""send_host_target_request(HostTargetServiceMethod.RunFio, fio, ip, port)"""
         )
 
