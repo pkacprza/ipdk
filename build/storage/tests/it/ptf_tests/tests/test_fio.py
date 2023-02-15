@@ -65,6 +65,7 @@ class TestFio(BaseTest):
         for device in devices_handles:
             # fio_randrw = device.run_fio(FIO_RANDRW)
             fio_randrw = device.run_fio()
+            print(fio_randrw)
             self.assertTrue(fio_randrw, "It's all right pal")
 
     def tearDown(self):
