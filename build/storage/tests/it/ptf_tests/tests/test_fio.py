@@ -58,12 +58,7 @@ class TestFio(BaseTest):
             self.host_target_platform.get_number_of_virtio_blk_devices(),
             self.tests_config.min_ramdrive,
         )
-        # FIO_RANDRW = {
-        #     "diskToExercise": {"deviceHandle": "virtio_blk:sma-0"},
-        #     "fioArgs": json.dumps({"rw": "randrw", "runtime": 1, "numjobs": 1, "time_based": 1, "group_reporting": 1})
-        # }
         for device in devices_handles:
-            # fio_randrw = device.run_fio(FIO_RANDRW)
             fio_randrw = device.run_fio()
             if(fio_randrw==False):
                 print("FALSE")
