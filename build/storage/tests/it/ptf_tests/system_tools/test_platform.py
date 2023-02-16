@@ -7,7 +7,8 @@ from system_tools.config import (HostTargetConfig, IPUStorageConfig,
 from system_tools.docker import (CMDSenderContainer, Docker,
                                  HostTargetContainer, IPUStorageContainer,
                                  StorageTargetContainer)
-from system_tools.errors import CMDSenderPlatformNameException, MissingDependencyException
+from system_tools.errors import (CMDSenderPlatformNameException,
+                                 MissingDependencyException)
 from system_tools.ssh_terminal import SSHTerminal
 from system_tools.vm import VirtualMachine
 
@@ -33,12 +34,6 @@ class ServiceAddress:
 
 
 class IpuStorageDevice:
-    # TODO add implementation
-    def run_fio(self, fio_args: dict):
-        pass
-
-
-class VirtioBlkDevice(IpuStorageDevice):
     def __init__(
         self,
         device_handle,
@@ -51,6 +46,15 @@ class VirtioBlkDevice(IpuStorageDevice):
         self._ipu_platform = ipu_platform
         self._host_target_address_service = host_target_address_service
 
+    def run_fio(self, option):
+        return self._ipu_platform.cmd_sender.run_fio(
+            self._host_target_address_service,
+            self._device_handle,
+            option,
+        )
+
+
+class VirtioBlkDevice(IpuStorageDevice):
     def delete(self, cmd_sender):
         return cmd_sender.delete_virtio_blk_device(
             self._ipu_platform.get_ip_address(),

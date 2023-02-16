@@ -8,6 +8,7 @@ from tenacity import retry, stop_after_delay
 
 from system_tools.config import (HostTargetConfig, IPUStorageConfig,
                                  StorageTargetConfig, TestConfig)
+from system_tools.const import DEFAULT_HOST_TARGET_SERVICE_PORT_IN_VM, FIO_COMMON
 from system_tools.errors import ContainerNotRunningException
 from system_tools.ssh_terminal import SSHTerminal
 
@@ -101,6 +102,25 @@ class CMDSenderContainer(DockerContainer):
             f"scripts/run_cmd_sender.sh"
         )
         super().__init__(terminal, cmd, "cmd-sender")
+
+    def _prepare_fio_json_args(self, option):
+        fio_args = {
+            **FIO_COMMON,
+            "rw": option.lower(),
+        }
+        return str(fio_args).replace("'", '"')
+
+    def run_fio(self, host_id, virtio_blk, option):
+        cmd = (
+            f"""docker exec {self.id} """
+            f"""python -c 'from scripts.disk_infrastructure import *; """
+            f"""import json; """
+            f"""fio={{"diskToExercise": {{"deviceHandle": "{virtio_blk}"}}"""
+            f""","fioArgs": json.dumps({self._prepare_fio_json_args(option)})}}; """
+            f"""print(send_host_target_request(HostTargetServiceMethod.RunFio,"""
+            f""" fio, "{host_id.ip_address}", {DEFAULT_HOST_TARGET_SERVICE_PORT_IN_VM}))'"""
+        )
+        return self._terminal.execute(cmd) == "True"
 
     def create_subsystem(
         self, ip_addr: str, nqn: str, port_to_expose: int, storage_target_port: int
